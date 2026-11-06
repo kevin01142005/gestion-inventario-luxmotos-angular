@@ -1,0 +1,35 @@
+<div class="row g-2">
+  <div class="col-12 col-md-4">
+    <label for="marcaMoto" class="form-label">Marca</label>
+    <select class="form-select" id="marcaMoto" [value]="marcaId()" [disabled]="deshabilitado() || cargando()"
+            (change)="elegirMarca($any($event.target).value)">
+      <option value="">{{ cargando() && marcas().length === 0 ? 'Cargando...' : 'Selecciona una marca' }}</option>
+      @for (m of marcas(); track m.id) {
+        <option [value]="m.id" [selected]="marcaId() === '' + m.id">{{ m.nombre }}</option>
+      }
+    </select>
+  </div>
+  <div class="col-12 col-md-4">
+    <label for="modeloMoto" class="form-label">Modelo</label>
+    <select class="form-select" id="modeloMoto" [value]="modeloId()" [disabled]="deshabilitado() || cargando() || !marcaId()"
+            (change)="elegirModelo($any($event.target).value)">
+      <option value="">Selecciona un modelo</option>
+      @for (m of modelos(); track m.id) {
+        <option [value]="m.id" [selected]="modeloId() === '' + m.id">{{ m.nombre }} ({{ m.tipo }})</option>
+      }
+    </select>
+  </div>
+  <div class="col-12 col-md-4">
+    <label for="versionMoto" class="form-label">Versión</label>
+    <select class="form-select" id="versionMoto" [value]="versionId()" [disabled]="deshabilitado() || cargando() || !modeloId()"
+            (change)="elegirVersion($any($event.target).value)">
+      <option value="">Selecciona una versión</option>
+      @for (v of versiones(); track v.id) {
+        <option [value]="v.id" [selected]="versionId() === '' + v.id">Año {{ v.anio }} · {{ v.cilindraje }} cc</option>
+      }
+    </select>
+  </div>
+</div>
+@if (error()) {
+  <div class="text-danger small mt-2">{{ error() }}</div>
+}

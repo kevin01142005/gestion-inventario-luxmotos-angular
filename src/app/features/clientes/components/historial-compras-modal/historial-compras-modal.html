@@ -1,0 +1,16 @@
+<app-modal [abierto]="abierto()" [grande]="true" [conScroll]="true" (cerrar)="cerrar.emit()">
+  <div class="modal-header">
+    <h5 class="modal-title fw-bold">
+      <i class="bi bi-receipt"></i> Historial de compras · <span>{{ cliente()?.nombre }}</span>
+    </h5>
+    <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrar.emit()"></button>
+  </div>
+  <div class="modal-body">
+    <app-data-table [datos]="compras()" [columnas]="columnas" [porPagina]="5" etiqueta="Historial de compras"
+      placeholderBusqueda="Buscar compra..." iconoVacio="bi-receipt"
+      [mensajeVacio]="cargando() ? 'Cargando compras...' : 'Este cliente aún no tiene compras registradas.'" />
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-dark" (click)="cerrar.emit()">Cerrar</button>
+  </div>
+</app-modal>

@@ -1,0 +1,10 @@
+@if (abierto()) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="onFondo($event)">
+    <div class="modal-dialog modal-dialog-centered" [class.modal-lg]="grande()" [class.modal-dialog-scrollable]="conScroll()">
+      <div class="modal-content">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

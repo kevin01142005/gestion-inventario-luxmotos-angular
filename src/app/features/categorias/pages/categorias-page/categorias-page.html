@@ -1,0 +1,33 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="mt-3">
+      <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+    </div>
+
+    <div class="card tarjeta-tabla mt-3 mb-5">
+      <div class="card-body">
+
+        <app-section-header titulo="Categorías de productos" subtitulo="Organiza los productos del inventario por categoría">
+          @if (permisos().puedeCrear) {
+            <button type="button" class="btn btn-primary" (click)="abrirNueva()">
+              <i class="bi bi-plus-lg"></i> Nueva categoría
+            </button>
+          }
+        </app-section-header>
+
+        <app-data-table [datos]="categorias()" [columnas]="columnas" etiqueta="Tabla de categorías"
+          placeholderBusqueda="Buscar categoría..." [mensajeVacio]="mensajeVacio()"
+          (accion)="alAccion($event)" />
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<app-categoria-form-modal [abierto]="modalAbierto()" [categoria]="categoriaEditando()" [error]="errorModal.actual()"
+  [guardando]="guardando()" (guardar)="guardar($event)" (cerrar)="cerrarModal()" (cerrarError)="errorModal.limpiar()" />
+
+<app-confirm-modal [abierto]="categoriaAEliminar() !== null" titulo="Eliminar categoría"
+  pregunta="¿Seguro que deseas eliminar la categoría" [nombre]="categoriaAEliminar()?.nombre ?? ''"
+  (confirmar)="confirmarEliminar()" (cancelar)="categoriaAEliminar.set(null)" />

@@ -1,0 +1,93 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="mt-3">
+      <app-alerta [alerta]="alerta.actual()" icono="bi-shield-exclamation" (cerrar)="alerta.limpiar()" />
+    </div>
+
+    <div class="row g-3 mt-1">
+      <div class="col-6 col-lg-3">
+        <app-resumen-card etiqueta="Total productos" [valor]="totalProductos()" icono="bi-box-seam" color="rojo" />
+      </div>
+      <div class="col-6 col-lg-3">
+        <app-resumen-card etiqueta="Categorías activas" [valor]="categoriasActivas()" icono="bi-tags" color="negro" />
+      </div>
+      <div class="col-6 col-lg-3">
+        <app-resumen-card etiqueta="Stock bajo" [valor]="stockBajo()" icono="bi-exclamation-triangle" color="alerta" />
+      </div>
+      <div class="col-6 col-lg-3">
+        <app-resumen-card etiqueta="Agotados" [valor]="agotados()" icono="bi-x-octagon" color="rojo" />
+      </div>
+
+      <div class="col-6 col-lg-3" *appSoloAdmin>
+        <app-resumen-card etiqueta="Ventas del mes" [valor]="ventasMes()" icono="bi-graph-up-arrow" color="negro" />
+      </div>
+      <div class="col-6 col-lg-3" *appSoloAdmin>
+        <app-resumen-card etiqueta="Clientes registrados" [valor]="estadisticas().cantidadClientesRegistrados" icono="bi-people" color="rojo" />
+      </div>
+    </div>
+
+    <div class="card tarjeta-tabla mt-4 mb-5">
+      <div class="card-body">
+
+        <app-section-header titulo="Inventario de productos" subtitulo="Consulta, crea, edita y elimina productos del inventario">
+          @if (permisos().puedeCrear) {
+            <button type="button" class="btn btn-primary" (click)="abrirNuevo()">
+              <i class="bi bi-plus-lg"></i> Nuevo producto
+            </button>
+          }
+        </app-section-header>
+
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-5">
+            <app-search-box [(valor)]="busqueda" placeholder="Buscar por nombre o código..." />
+          </div>
+          <div class="col-6 col-md-3">
+            <select class="form-select" aria-label="Filtrar por categoría" [value]="filtroCategoria()"
+                    (change)="filtroCategoria.set($any($event.target).value)">
+              <option value="">Todas las categorías</option>
+              @for (c of categorias(); track c.id) {
+                <option [value]="c.id">{{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <select class="form-select" aria-label="Filtrar por estado" [value]="filtroEstado()"
+                    (change)="filtroEstado.set($any($event.target).value)">
+              <option value="">Todos los estados</option>
+              <option value="DISPONIBLE">Disponible</option>
+              <option value="STOCK_BAJO">Stock bajo</option>
+              <option value="AGOTADO">Agotado</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-1 d-grid">
+            <button type="button" class="btn btn-outline-dark" title="Limpiar filtros" aria-label="Limpiar filtros"
+                    (click)="limpiarFiltros()">
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+          </div>
+        </div>
+
+        <app-data-table [datos]="filtrados()" [columnas]="columnas" [buscador]="false" [busqueda]="busqueda()"
+          etiqueta="Tabla de productos" [mensajeVacio]="mensajeVacio()"
+          (accion)="alAccion($event)" />
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<app-producto-form-modal [abierto]="modalAbierto()" [producto]="productoEditando()"
+  [categorias]="categoriasFormulario()" [proveedores]="proveedores()" [error]="errorModal.actual()"
+  [guardando]="guardando()" (guardar)="guardar($event)" (cerrar)="cerrarModal()" (cerrarError)="errorModal.limpiar()" />
+
+<app-compatibilidad-modal [abierto]="productoMotos() !== null" [producto]="productoMotos()"
+  [compatibilidades]="compatibilidades()" [cargando]="cargandoMotos()" [guardando]="guardandoMoto()"
+  [error]="errorMotos.actual()" [puedeAgregar]="permisos().puedeCrear" [puedeQuitar]="permisos().puedeEliminar"
+  (agregar)="agregarMoto($event)" (quitar)="quitarMoto($event)" (cerrar)="cerrarMotos()"
+  (cerrarError)="errorMotos.limpiar()" />
+
+<app-confirm-modal [abierto]="productoAEliminar() !== null" titulo="Eliminar producto"
+  pregunta="¿Seguro que deseas eliminar el producto" [nombre]="productoAEliminar()?.nombre ?? ''"
+  (confirmar)="confirmarEliminar()" (cancelar)="productoAEliminar.set(null)" />

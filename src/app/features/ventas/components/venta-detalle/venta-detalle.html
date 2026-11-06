@@ -1,0 +1,34 @@
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h3 class="h6 fw-bold mb-0">Venta del {{ venta().creado | fechaHora }}</h3>
+    <p class="text-muted small mb-0">Total: {{ venta().total | cop }}</p>
+  </div>
+  <app-status-badge [estado]="venta().estadoVenta" />
+</div>
+
+<p class="mb-1"><i class="bi bi-person"></i> <strong>{{ venta().nombreCliente }}</strong></p>
+<p class="text-muted small mb-3"><i class="bi bi-person-badge"></i> Vendedor: {{ venta().correoVendedor }}</p>
+
+<app-data-table class="d-block mb-3" [datos]="venta().detalles" [columnas]="columnas" [compacta]="true"
+  etiqueta="Productos de la venta" mensajeVacio="Esta venta no tiene productos." />
+
+<div class="mb-3">
+  <app-resumen-totales [subtotal]="venta().subtotal" [iva]="venta().iva" [total]="venta().total" />
+</div>
+
+<div class="d-flex flex-wrap gap-2">
+  @if (puedeGestionar()) {
+    <button type="button" class="btn btn-success btn-sm" [disabled]="venta().estadoVenta !== 'PENDIENTE'" (click)="completar.emit()">
+      <i class="bi bi-check-lg"></i> Completar venta
+    </button>
+    <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="venta().estadoVenta !== 'PENDIENTE'" (click)="anular.emit()">
+      <i class="bi bi-x-lg"></i> Anular venta
+    </button>
+  }
+  <button type="button" class="btn btn-outline-dark btn-sm" [disabled]="venta().estadoVenta !== 'COMPLETADA'" (click)="verFactura.emit()">
+    <i class="bi bi-file-earmark-text"></i> Ver factura
+  </button>
+</div>
+@if (venta().estadoVenta !== 'COMPLETADA') {
+  <p class="text-muted small mt-2 mb-0">La factura solo está disponible una vez que la venta se completa.</p>
+}

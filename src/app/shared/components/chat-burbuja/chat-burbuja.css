@@ -1,0 +1,41 @@
+:host { display: block; }
+
+.fila {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.fila-usuario { justify-content: flex-end; }
+
+.burbuja {
+  max-width: min(85%, 720px);
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  color: #212529;
+}
+
+.burbuja-usuario {
+  background: #212529;
+  border-color: #212529;
+  color: #fff;
+}
+
+.burbuja-error {
+  background: #fff3cd;
+  border-color: #ffe69c;
+  color: #664d03;
+}
+
+.texto {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.opacidad-hora { opacity: 0.65; }
+
+@media (max-width: 575.98px) {
+  .burbuja { max-width: 95%; }
+}

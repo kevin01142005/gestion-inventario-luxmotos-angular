@@ -1,0 +1,104 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="mt-3">
+      <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+    </div>
+
+    <app-section-header titulo="Ventas" subtitulo="Registra una venta, complétala o anúlala, y consulta su factura" />
+
+    <div class="row g-3 mb-3">
+
+      @if (permisos().puedeCrear) {
+        <div class="col-12 col-lg-7">
+          <div class="card tarjeta-tabla">
+            <div class="card-body">
+              <h2 class="h6 fw-bold mb-3"><i class="bi bi-cart-plus"></i> Nueva venta</h2>
+
+              <div class="mb-3">
+                <label for="clienteVenta" class="form-label">Cliente</label>
+                <select class="form-select" id="clienteVenta" [formControl]="clienteControl">
+                  <option [ngValue]="null" disabled>Selecciona un cliente</option>
+                  @for (c of clientes(); track c.id) {
+                    <option [ngValue]="c.id">{{ c.nombre }} · {{ c.documento }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="row g-2 align-items-end mb-3">
+                <div class="col-12 col-md-6">
+                  <label for="productoVenta" class="form-label">Producto</label>
+                  <select class="form-select" id="productoVenta" [formControl]="productoControl">
+                    <option [ngValue]="null" disabled>Selecciona un producto</option>
+                    @for (p of productos(); track p.id) {
+                      <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombre }} (stock: {{ p.stockActual }})</option>
+                    }
+                  </select>
+                </div>
+                <div class="col-7 col-md-3">
+                  <label for="cantidadVenta" class="form-label">Cantidad</label>
+                  <input type="number" class="form-control" id="cantidadVenta" [formControl]="cantidadControl" min="1" step="1" />
+                </div>
+                <div class="col-5 col-md-3 d-grid">
+                  <button type="button" class="btn btn-outline-dark" (click)="agregarItem()">
+                    <i class="bi bi-plus-lg"></i> Agregar
+                  </button>
+                </div>
+              </div>
+
+              <app-data-table [datos]="carrito()" [columnas]="columnasCarrito" [compacta]="true" claseFila="fila-carrito"
+                etiqueta="Productos de la venta" iconoVacio="bi-cart" mensajeVacio="Aún no has agregado productos a esta venta."
+                (accion)="alAccionCarrito($event)" />
+
+              <div class="mb-3">
+                <app-resumen-totales [subtotal]="subtotal()" [iva]="iva()" [total]="total()" etiquetaIva="IVA (19%)" />
+              </div>
+              <p class="text-muted small">Estos valores son un estimado; el sistema calcula y confirma los montos definitivos al crear la venta.</p>
+
+              <button type="button" class="btn btn-primary w-100" [disabled]="carrito().length === 0 || procesando()" (click)="crearVenta()">
+                {{ procesando() ? 'Procesando...' : 'Crear venta' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="col-12" [class.col-lg-5]="permisos().puedeCrear">
+        <div class="card tarjeta-carrito">
+          <div class="card-body">
+            <h2 class="h6 fw-bold mb-3"><i class="bi bi-receipt"></i> Detalle de venta</h2>
+            @if (ventaActual(); as v) {
+              <app-venta-detalle [venta]="v" [puedeGestionar]="permisos().puedeCrear && !procesando()"
+                (completar)="accionPendiente.set('completar')" (anular)="accionPendiente.set('anular')"
+                (verFactura)="verFactura(v)" />
+            } @else {
+              <app-empty-state icono="bi-cart-check" mensaje="Crea una venta o elige una de la tabla para ver su detalle aquí." />
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card tarjeta-tabla mb-5">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3"><i class="bi bi-list-ul"></i> Ventas registradas</h2>
+        <app-data-table [datos]="ventas()" [columnas]="columnasVentas" etiqueta="Tabla de ventas"
+          placeholderBusqueda="Buscar venta..." iconoVacio="bi-receipt" [mensajeVacio]="mensajeVentas()"
+          (accion)="alAccionVentas($event)" />
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<app-factura-modal [factura]="facturaActual()" (cerrar)="facturaActual.set(null)" />
+
+<app-confirm-modal [abierto]="accionPendiente() !== null"
+  [titulo]="accionPendiente() === 'completar' ? 'Completar venta' : 'Anular venta'"
+  [icono]="accionPendiente() === 'completar' ? 'bi-check-circle' : 'bi-exclamation-triangle'"
+  [pregunta]="accionPendiente() === 'completar' ? '¿Completar la venta de' : '¿Anular la venta de'"
+  [nombre]="ventaActual()?.nombreCliente ?? ''"
+  [aviso]="accionPendiente() === 'completar' ? 'Se descontará el stock de los productos y se generará la factura.' : 'Esta acción no se puede deshacer.'"
+  [textoConfirmar]="accionPendiente() === 'completar' ? 'Sí, completar' : 'Sí, anular'"
+  [tipo]="accionPendiente() === 'completar' ? 'success' : 'danger'"
+  (confirmar)="confirmarAccion()" (cancelar)="accionPendiente.set(null)" />

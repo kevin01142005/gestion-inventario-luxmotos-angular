@@ -1,0 +1,105 @@
+<div class="pagina-auth">
+  <main class="contenedor-auth">
+    <div class="tarjeta-auth tarjeta-auth-ancha card shadow-lg border-0">
+      <div class="card-body p-4 p-md-5">
+
+        <app-header icono="bi-person-plus" titulo="Registrar nuevo usuario"
+                    [subtitulo]="subtitulo()" />
+
+        <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+
+        <form [formGroup]="form" (ngSubmit)="registrar()" novalidate>
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="nombreCompleto" class="form-label">Nombre completo</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input type="text" class="form-control" id="nombreCompleto" formControlName="nombreCompleto"
+                       placeholder="Nombre y apellido" />
+              </div>
+              @if (intento() && form.controls.nombreCompleto.invalid) {
+                <div class="invalid-feedback d-block">El nombre completo es obligatorio.</div>
+              }
+            </div>
+
+            <div class="col-12">
+              <label for="correoRegistro" class="form-label">Correo electrónico</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input type="email" class="form-control" id="correoRegistro" formControlName="correo"
+                       placeholder="nombre@empresa.com" autocomplete="off" />
+              </div>
+              @if (intento() && form.controls.correo.invalid) {
+                <div class="invalid-feedback d-block">
+                  {{ form.controls.correo.errors?.['required'] ? 'El correo es obligatorio.' : 'Ingresa un correo válido.' }}
+                </div>
+              }
+            </div>
+
+            <div class="col-12">
+              <label for="rolRegistro" class="form-label">Rol</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+                <select class="form-select" id="rolRegistro" formControlName="rol">
+                  <option value="" disabled>Selecciona un rol</option>
+                  @for (r of roles(); track r.value) {
+                    <option [value]="r.value">{{ r.label }}</option>
+                  }
+                </select>
+              </div>
+              @if (intento() && form.controls.rol.invalid) {
+                <div class="invalid-feedback d-block">Selecciona un rol.</div>
+              }
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="contrasenaRegistro" class="form-label">Contraseña</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                <input [type]="verContrasena() ? 'text' : 'password'" class="form-control" id="contrasenaRegistro"
+                       formControlName="contrasena" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
+                <button class="btn btn-outline-secondary" type="button" tabindex="-1"
+                        [attr.aria-label]="verContrasena() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                        (click)="verContrasena.set(!verContrasena())">
+                  <i class="bi" [class.bi-eye]="!verContrasena()" [class.bi-eye-slash]="verContrasena()"></i>
+                </button>
+              </div>
+              @if (intento() && form.controls.contrasena.invalid) {
+                <div class="invalid-feedback d-block">La contraseña debe tener al menos 8 caracteres.</div>
+              }
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="confirmarContrasena" class="form-label">Confirmar contraseña</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                <input [type]="verContrasena() ? 'text' : 'password'" class="form-control" id="confirmarContrasena"
+                       formControlName="confirmar" placeholder="Repite la contraseña" autocomplete="new-password" />
+                <button class="btn btn-outline-secondary" type="button" tabindex="-1"
+                        [attr.aria-label]="verContrasena() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                        (click)="verContrasena.set(!verContrasena())">
+                  <i class="bi" [class.bi-eye]="!verContrasena()" [class.bi-eye-slash]="verContrasena()"></i>
+                </button>
+              </div>
+              @if (intento() && form.errors?.['noCoincide']) {
+                <div class="invalid-feedback d-block">Las contraseñas no coinciden.</div>
+              }
+            </div>
+
+            <div class="col-12">
+              <app-password-strength [contrasena]="form.controls.contrasena.value ?? ''" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-4" [disabled]="guardando()">
+            {{ guardando() ? 'Registrando...' : 'Registrar usuario' }}
+          </button>
+        </form>
+
+        <p class="text-center small mt-4 mb-0">
+          <a routerLink="/panel" class="enlace-marca"><i class="bi bi-arrow-left"></i> Volver al panel</a>
+        </p>
+      </div>
+    </div>
+  </main>
+</div>

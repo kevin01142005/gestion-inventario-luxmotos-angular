@@ -1,0 +1,87 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="card tarjeta-tabla mt-3 mb-5">
+      <div class="card-body">
+        <app-section-header titulo="Asistente LuxMotos"
+          subtitulo="Pregunta en lenguaje natural sobre el sistema, sus reglas y el catálogo de motos (Open WebUI + Ollama)">
+          @if (conectado()) {
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="nuevaConversacion()"
+                      [disabled]="!mensajes().length">
+                <i class="bi bi-arrow-counterclockwise"></i> Nueva conversación
+              </button>
+              <button type="button" class="btn btn-outline-dark btn-sm" (click)="cambiarClave()">
+                <i class="bi bi-key"></i> Cambiar clave
+              </button>
+            </div>
+          }
+        </app-section-header>
+
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <a class="btn btn-outline-primary btn-sm" href="https://t.me/luxmotos_asistente_bot"
+             target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-telegram"></i> Abrir en Telegram
+          </a>
+          <span class="text-muted small">También puedes hacer estas preguntas desde el bot de Telegram del asistente.</span>
+        </div>
+
+        @if (!conectado()) {
+          <form class="bloque-conexion" (submit)="guardarClave($event)">
+            <div class="d-flex align-items-start gap-2 mb-3">
+              <i class="bi bi-plug fs-4"></i>
+              <div>
+                <div class="fw-semibold">Conecta el asistente</div>
+                <div class="text-muted small">
+                  Pega la clave de API de tu Open WebUI (Ajustes, Cuenta, Claves de API). Se guarda solo en este
+                  navegador y no se envía a ningún otro lugar.
+                </div>
+              </div>
+            </div>
+            <div class="input-group">
+              <input [type]="verClave() ? 'text' : 'password'" class="form-control" placeholder="sk-..."
+                     aria-label="Clave de Open WebUI" autocomplete="off" [value]="clave()" (input)="actualizarClave($event)" />
+              <button type="button" class="btn btn-outline-secondary" [attr.aria-label]="verClave() ? 'Ocultar clave' : 'Mostrar clave'"
+                      (click)="verClave.set(!verClave())">
+                <i class="bi" [class.bi-eye]="!verClave()" [class.bi-eye-slash]="verClave()"></i>
+              </button>
+              <button type="submit" class="btn btn-primary" [disabled]="!clave().trim()">Conectar</button>
+            </div>
+          </form>
+        } @else {
+          <div #lista class="chat-lista" aria-live="polite" aria-label="Conversación con el asistente">
+            @if (!mensajes().length) {
+              <app-empty-state mensaje="Escribe una pregunta o elige una sugerencia para empezar." icono="bi-robot" />
+            }
+            @for (m of mensajes(); track m.id) {
+              <app-chat-burbuja [mensaje]="m" />
+            }
+            @if (pensando()) {
+              <div class="text-muted small d-flex align-items-center gap-2 estado-pensando">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                El asistente está pensando; puede tardar hasta un par de minutos...
+              </div>
+            }
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 my-3">
+            @for (s of sugerencias; track s) {
+              <button type="button" class="btn btn-outline-dark btn-sm sugerencia" [disabled]="pensando()"
+                      (click)="usarSugerencia(s)">{{ s }}</button>
+            }
+          </div>
+
+          <form class="d-flex gap-2 align-items-end" (submit)="enviar($event)">
+            <textarea class="form-control" rows="2" placeholder="Escribe tu pregunta..." aria-label="Tu pregunta"
+                      [value]="texto()" (input)="actualizar($event)"
+                      (keydown.enter)="teclaEnter($event)"></textarea>
+            <button type="submit" class="btn btn-primary" [disabled]="pensando() || !texto().trim()">
+              <i class="bi bi-send"></i> Enviar
+            </button>
+          </form>
+        }
+      </div>
+    </div>
+
+  </div>
+</main>

@@ -1,0 +1,43 @@
+<nav class="navbar navbar-expand-lg navbar-dark navbar-marca fixed-top">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/panel">
+      <i class="bi bi-boxes fs-4"></i>
+      <span class="fw-bold">Gestión de Inventario</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" aria-controls="menuNavbar" aria-label="Mostrar menú"
+            [attr.aria-expanded]="menuAbierto()" (click)="alternarMenu()">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-end" [class.show]="menuAbierto()" id="menuNavbar">
+      <ul class="navbar-nav align-items-lg-center gap-lg-1">
+        @for (m of auth.menu(); track m.ruta) {
+          <li class="nav-item">
+            <a class="nav-link enlace-modulo" [routerLink]="m.path" routerLinkActive="activo" [attr.title]="m.name"
+               [attr.aria-label]="m.name" (click)="cerrarMenu()">
+              <i class="bi {{ m.icon }}"></i> <span class="texto-enlace">{{ m.name }}</span>
+            </a>
+          </li>
+        }
+        <li class="nav-item dropdown">
+          <button class="nav-link dropdown-toggle d-flex align-items-center gap-2" type="button"
+                  [attr.aria-expanded]="usuarioAbierto()" (click)="alternarUsuario($event)">
+            <span class="avatar-usuario"><i class="bi bi-person-fill"></i></span>
+            <span class="datos-usuario d-flex flex-column lh-sm text-start" [attr.title]="auth.usuario()?.correo">
+              <span class="fw-semibold small">{{ auth.usuario()?.correo }}</span>
+              <span class="text-white-50 rol-usuario">{{ rolLabel() }}</span>
+            </span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" [class.show]="usuarioAbierto()" data-bs-popper="static">
+            <li>
+              <button class="dropdown-item text-danger" type="button" (click)="cerrarSesion()">
+                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+              </button>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

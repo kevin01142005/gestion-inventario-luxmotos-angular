@@ -1,0 +1,116 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="mt-3">
+      <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+    </div>
+
+    <h1 class="h5 fw-bold mt-3 mb-3">Reportes</h1>
+
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <app-kpi-card etiqueta="Ventas del mes" [valor]="moneda(estadisticas().totalVentasDelMes)" />
+      </div>
+      <div class="col-6 col-lg-3">
+        <app-kpi-card etiqueta="Productos activos" [valor]="estadisticas().cantidadProductosActivos" />
+      </div>
+      <div class="col-6 col-lg-3">
+        <app-kpi-card etiqueta="Productos agotados" [valor]="estadisticas().cantidadProductosAgotados" />
+      </div>
+      <div class="col-6 col-lg-3">
+        <app-kpi-card etiqueta="Clientes registrados" [valor]="estadisticas().cantidadClientesRegistrados" />
+      </div>
+    </div>
+
+    <div class="card tarjeta-tabla mb-5">
+      <div class="card-body">
+        <app-tabs [pestanas]="pestanas" [(activa)]="pestanaActiva" />
+
+        <div class="tab-content">
+
+          @switch (pestanaActiva()) {
+
+            @case ('diarias') {
+              <div class="tab-pane fade show active">
+                <div class="row g-2 align-items-end mb-3">
+                  <div class="col-12 col-md-4">
+                    <label for="fechaVentasDiarias" class="form-label">Fecha</label>
+                    <input type="date" class="form-control" id="fechaVentasDiarias" [formControl]="fechaDiaria" />
+                  </div>
+                  <div class="col-12 col-md-3 d-grid">
+                    <button type="button" class="btn btn-primary" (click)="consultarDiarias()">Consultar</button>
+                  </div>
+                </div>
+                @if (ventasDiarias(); as r) {
+                  <div class="row g-3">
+                    <div class="col-6 col-md-4"><app-kpi-card etiqueta="Periodo" [valor]="r.etiquetaPeriodo" [compacto]="true" /></div>
+                    <div class="col-6 col-md-4"><app-kpi-card etiqueta="Total en ventas" [valor]="moneda(r.totalVentas)" /></div>
+                    <div class="col-6 col-md-4"><app-kpi-card etiqueta="Transacciones" [valor]="r.cantidadTransacciones" /></div>
+                  </div>
+                }
+              </div>
+            }
+
+            @case ('mensuales') {
+              <div class="tab-pane fade show active">
+                <div class="row g-2 align-items-end mb-3">
+                  <div class="col-6 col-md-3">
+                    <label for="anioVentasMensuales" class="form-label">Año</label>
+                    <input type="number" class="form-control" id="anioVentasMensuales" [formControl]="anio" min="2000" max="2100" />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label for="mesVentasMensuales" class="form-label">Mes</label>
+                    <select class="form-select" id="mesVentasMensuales" [formControl]="mes">
+                      @for (nombre of meses; track nombre; let i = $index) {
+                        <option [ngValue]="i + 1">{{ nombre }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="col-12 col-md-3 d-grid">
+                    <button type="button" class="btn btn-primary" (click)="consultarMensuales()">Consultar</button>
+                  </div>
+                </div>
+                @if (ventasMensuales(); as r) {
+                  <div class="row g-3">
+                    <div class="col-6 col-md-4"><app-kpi-card etiqueta="Periodo" [valor]="r.etiquetaPeriodo" [compacto]="true" /></div>
+                    <div class="col-6 col-md-4"><app-kpi-card etiqueta="Total en ventas" [valor]="moneda(r.totalVentas)" /></div>
+                    <div class="col-6 col-md-4"><app-kpi-card etiqueta="Transacciones" [valor]="r.cantidadTransacciones" /></div>
+                  </div>
+                }
+              </div>
+            }
+
+            @case ('mas-vendidos') {
+              <div class="tab-pane fade show active">
+                <div class="row g-2 align-items-end mb-3">
+                  <div class="col-6 col-md-3">
+                    <label for="fechaDesdeMasVendidos" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fechaDesdeMasVendidos" [formControl]="desde" />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label for="fechaHastaMasVendidos" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fechaHastaMasVendidos" [formControl]="hasta" />
+                  </div>
+                  <div class="col-12 col-md-3 d-grid">
+                    <button type="button" class="btn btn-primary" (click)="consultarMasVendidos()">Consultar</button>
+                  </div>
+                </div>
+                <app-data-table [datos]="masVendidos()" [columnas]="columnasMasVendidos" etiqueta="Productos más vendidos"
+                  placeholderBusqueda="Buscar producto..." iconoVacio="bi-trophy" mensajeVacio="No hay ventas en el rango seleccionado." />
+              </div>
+            }
+
+            @case ('inventario') {
+              <div class="tab-pane fade show active">
+                <app-data-table [datos]="inventario()" [columnas]="columnasInventario" etiqueta="Inventario actual"
+                  placeholderBusqueda="Buscar producto o código..." mensajeVacio="No hay productos registrados." />
+              </div>
+            }
+          }
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>

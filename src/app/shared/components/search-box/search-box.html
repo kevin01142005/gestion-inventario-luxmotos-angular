@@ -1,0 +1,5 @@
+<div class="input-group">
+  <span class="input-group-text"><i class="bi bi-search"></i></span>
+  <input type="text" class="form-control" [placeholder]="placeholder()" [attr.aria-label]="placeholder()"
+         [value]="valor()" (input)="valor.set($any($event.target).value)" />
+</div>

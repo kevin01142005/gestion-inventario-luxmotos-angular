@@ -1,0 +1,5 @@
+<div class="resumen-totales">
+  <div class="fila-total"><span>Subtotal</span><span>{{ subtotal() | cop }}</span></div>
+  <div class="fila-total"><span>{{ etiquetaIva() }}</span><span>{{ iva() | cop }}</span></div>
+  <div class="fila-total total-final"><span>Total</span><span>{{ total() | cop }}</span></div>
+</div>

@@ -1,0 +1,94 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="mt-3">
+      <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+    </div>
+
+    <div class="row g-3 mt-1">
+
+      @if (permisos().puedeCrear) {
+        <div class="col-12 col-lg-4">
+          <div class="card tarjeta-tabla h-100">
+            <div class="card-body">
+              <h2 class="h6 fw-bold mb-3"><i class="bi bi-plus-slash-minus"></i> Registrar movimiento</h2>
+              <app-alerta [alerta]="alertaFormulario.actual()" (cerrar)="alertaFormulario.limpiar()" />
+
+              <form [formGroup]="form" (ngSubmit)="registrar()" novalidate>
+                <div class="mb-3">
+                  <label for="productoMovimiento" class="form-label">Producto</label>
+                  <select class="form-select" id="productoMovimiento" formControlName="productoId">
+                    <option [ngValue]="null" disabled>Selecciona un producto</option>
+                    @for (p of productos(); track p.id) {
+                      <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombre }} (stock: {{ p.stockActual }})</option>
+                    }
+                  </select>
+                  @if (intento() && form.controls.productoId.invalid) {
+                    <div class="invalid-feedback d-block">Selecciona un producto.</div>
+                  }
+                  @if (productoSeleccionado(); as p) {
+                    <div class="info-producto-seleccionado mt-2">
+                      <strong>Stock actual:</strong> {{ p.stockActual }} &nbsp;·&nbsp;
+                      <strong>Stock mínimo:</strong> {{ p.stockMinimo }} &nbsp;·&nbsp;
+                      <strong>Precio:</strong> {{ p.precio | cop }}
+                    </div>
+                  }
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label d-block">Tipo de movimiento</label>
+                  <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" id="tipoEntrada" value="ENTRADA" formControlName="tipo" autocomplete="off" />
+                    <label class="btn btn-outline-dark" for="tipoEntrada"><i class="bi bi-box-arrow-in-down"></i> Entrada</label>
+
+                    <input type="radio" class="btn-check" id="tipoSalida" value="SALIDA" formControlName="tipo" autocomplete="off" />
+                    <label class="btn btn-outline-dark" for="tipoSalida"><i class="bi bi-box-arrow-up"></i> Salida</label>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="cantidadMovimiento" class="form-label">Cantidad</label>
+                  <input type="number" class="form-control" id="cantidadMovimiento" formControlName="cantidad" min="1" step="1" />
+                  @if (intento() && form.controls.cantidad.invalid) {
+                    <div class="invalid-feedback d-block">La cantidad debe ser mayor a 0.</div>
+                  }
+                </div>
+
+                <div class="mb-3">
+                  <label for="motivoMovimiento" class="form-label">Motivo <span class="text-muted">(opcional)</span></label>
+                  <textarea class="form-control" id="motivoMovimiento" rows="2" formControlName="motivo"
+                            placeholder="Ej: compra a proveedor, ajuste por inventario físico..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100" [disabled]="guardando()">
+                  {{ guardando() ? 'Registrando...' : 'Registrar movimiento' }}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="col-12" [class.col-lg-8]="permisos().puedeCrear">
+        <div class="card tarjeta-tabla h-100">
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <h2 class="h6 fw-bold mb-0"><i class="bi bi-clock-history"></i> Historial de movimientos</h2>
+              <select class="form-select form-select-sm w-auto" aria-label="Producto del historial"
+                      [value]="productoHistorial() ?? ''" (change)="elegirHistorial($any($event.target).value)">
+                <option value="">Selecciona un producto para ver su historial</option>
+                @for (p of productos(); track p.id) {
+                  <option [value]="p.id">{{ p.codigo }} · {{ p.nombre }} (stock: {{ p.stockActual }})</option>
+                }
+              </select>
+            </div>
+
+            <app-data-table [datos]="historial()" [columnas]="columnas" etiqueta="Historial de movimientos"
+              placeholderBusqueda="Buscar movimiento..." iconoVacio="bi-clock-history" [mensajeVacio]="mensajeHistorial()" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>

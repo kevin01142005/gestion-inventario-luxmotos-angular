@@ -1,0 +1,10 @@
+<ul class="nav nav-tabs mb-3" role="tablist">
+  @for (p of pestanas(); track p.id) {
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" type="button" role="tab" [class.active]="p.id === activa()"
+              [attr.aria-selected]="p.id === activa()" (click)="activa.set(p.id)">
+        <i class="bi {{ p.icono }}"></i> {{ p.etiqueta }}
+      </button>
+    </li>
+  }
+</ul>

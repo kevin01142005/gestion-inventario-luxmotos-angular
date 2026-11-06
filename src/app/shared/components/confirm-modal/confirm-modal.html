@@ -1,0 +1,15 @@
+<app-modal [abierto]="abierto()" (cerrar)="cancelar.emit()">
+  <div class="modal-header">
+    <h5 class="modal-title fw-bold" [class.text-danger]="tipo() === 'danger'">
+      <i class="bi {{ icono() }}"></i> {{ titulo() }}
+    </h5>
+    <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelar.emit()"></button>
+  </div>
+  <div class="modal-body">
+    <p class="mb-0">{{ pregunta() }} <strong>{{ nombre() }}</strong>? {{ aviso() }}</p>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-dark" (click)="cancelar.emit()">Cancelar</button>
+    <button type="button" class="btn btn-{{ tipo() }}" (click)="confirmar.emit()">{{ textoConfirmar() }}</button>
+  </div>
+</app-modal>

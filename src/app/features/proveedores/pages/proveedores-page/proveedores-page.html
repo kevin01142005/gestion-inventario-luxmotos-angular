@@ -1,0 +1,33 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="mt-3">
+      <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+    </div>
+
+    <div class="card tarjeta-tabla mt-3 mb-5">
+      <div class="card-body">
+
+        <app-section-header titulo="Proveedores" subtitulo="Administra los proveedores asociados a los productos">
+          @if (permisos().puedeCrear) {
+            <button type="button" class="btn btn-primary" (click)="abrirNuevo()">
+              <i class="bi bi-plus-lg"></i> Nuevo proveedor
+            </button>
+          }
+        </app-section-header>
+
+        <app-data-table [datos]="proveedores()" [columnas]="columnas" etiqueta="Tabla de proveedores"
+          placeholderBusqueda="Buscar proveedor..." [mensajeVacio]="mensajeVacio()"
+          (accion)="alAccion($event)" />
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<app-proveedor-form-modal [abierto]="modalAbierto()" [proveedor]="proveedorEditando()" [error]="errorModal.actual()"
+  [guardando]="guardando()" (guardar)="guardar($event)" (cerrar)="cerrarModal()" (cerrarError)="errorModal.limpiar()" />
+
+<app-confirm-modal [abierto]="proveedorAEliminar() !== null" titulo="Eliminar proveedor"
+  pregunta="¿Seguro que deseas eliminar al proveedor" [nombre]="proveedorAEliminar()?.nombre ?? ''"
+  (confirmar)="confirmarEliminar()" (cancelar)="proveedorAEliminar.set(null)" />

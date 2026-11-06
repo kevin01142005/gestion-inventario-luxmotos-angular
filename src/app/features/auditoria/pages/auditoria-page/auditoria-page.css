@@ -1,0 +1,7 @@
+:host { display: block; }
+
+.filtro-entidad { max-width: 320px; }
+
+@media (max-width: 575.98px) {
+  .filtro-entidad { max-width: 100%; width: 100%; }
+}

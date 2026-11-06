@@ -1,0 +1,52 @@
+<app-modal [abierto]="abierto()" (cerrar)="cerrar.emit()">
+  <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+    <div class="modal-header">
+      <h5 class="modal-title fw-bold">
+        <i class="bi" [class.bi-person-vcard]="!esEdicion" [class.bi-pencil-square]="esEdicion"></i>
+        {{ esEdicion ? 'Editar cliente' : 'Nuevo cliente' }}
+      </h5>
+      <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrar.emit()"></button>
+    </div>
+    <div class="modal-body">
+      <app-alerta [alerta]="error()" (cerrar)="cerrarError.emit()" />
+
+      <div class="row g-3">
+        <div class="col-12 col-md-7">
+          <label for="nombreCliente" class="form-label">Nombre</label>
+          <input type="text" class="form-control" id="nombreCliente" formControlName="nombre" />
+          @if (intento() && form.controls.nombre.invalid) {
+            <div class="invalid-feedback d-block">El nombre es obligatorio.</div>
+          }
+        </div>
+        <div class="col-12 col-md-5">
+          <label for="documentoCliente" class="form-label">Documento</label>
+          <input type="text" class="form-control" id="documentoCliente" formControlName="documento" />
+          @if (intento() && form.controls.documento.invalid) {
+            <div class="invalid-feedback d-block">El documento es obligatorio.</div>
+          }
+        </div>
+        <div class="col-12 col-md-6">
+          <label for="telefonoCliente" class="form-label">Teléfono</label>
+          <input type="text" class="form-control" id="telefonoCliente" formControlName="telefono" />
+        </div>
+        <div class="col-12 col-md-6">
+          <label for="correoCliente" class="form-label">Correo</label>
+          <input type="email" class="form-control" id="correoCliente" formControlName="correo" />
+          @if (intento() && form.controls.correo.invalid) {
+            <div class="invalid-feedback d-block">Ingresa un correo válido.</div>
+          }
+        </div>
+        <div class="col-12">
+          <label for="direccionCliente" class="form-label">Dirección</label>
+          <input type="text" class="form-control" id="direccionCliente" formControlName="direccion" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-dark" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+        {{ guardando() ? 'Guardando...' : 'Guardar cliente' }}
+      </button>
+    </div>
+  </form>
+</app-modal>

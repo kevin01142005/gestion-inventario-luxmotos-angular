@@ -1,0 +1,41 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <div class="mt-3">
+      <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+    </div>
+
+    <div class="card tarjeta-tabla mt-3 mb-5">
+      <div class="card-body">
+
+        <app-section-header titulo="Clientes" subtitulo="Consulta, crea, edita y elimina clientes; revisa su historial de compras">
+          @if (permisos().puedeCrear) {
+            <button type="button" class="btn btn-primary" (click)="abrirNuevo()">
+              <i class="bi bi-plus-lg"></i> Nuevo cliente
+            </button>
+          }
+        </app-section-header>
+
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-6">
+            <app-search-box [(valor)]="busqueda" placeholder="Buscar por nombre o documento..." />
+          </div>
+        </div>
+
+        <app-data-table [datos]="clientes()" [columnas]="columnas" [buscador]="false" [busqueda]="busqueda()"
+          etiqueta="Tabla de clientes" [mensajeVacio]="mensajeVacio()" (accion)="alAccion($event)" />
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<app-cliente-form-modal [abierto]="modalAbierto()" [cliente]="clienteEditando()" [error]="errorModal.actual()"
+  [guardando]="guardando()" (guardar)="guardar($event)" (cerrar)="cerrarModal()" (cerrarError)="errorModal.limpiar()" />
+
+<app-historial-compras-modal [abierto]="clienteHistorial() !== null" [cliente]="clienteHistorial()"
+  [compras]="comprasHistorial()" [cargando]="cargandoCompras()" (cerrar)="clienteHistorial.set(null)" />
+
+<app-confirm-modal [abierto]="clienteAEliminar() !== null" titulo="Eliminar cliente"
+  pregunta="¿Seguro que deseas eliminar al cliente" [nombre]="clienteAEliminar()?.nombre ?? ''"
+  (confirmar)="confirmarEliminar()" (cancelar)="clienteAEliminar.set(null)" />

@@ -1,0 +1,15 @@
+@if (buscadorVisible()) {
+  <div class="mb-3">
+    <app-search-box [(valor)]="busquedaInterna" [placeholder]="placeholderBusqueda()" />
+  </div>
+}
+
+@if (vacio()) {
+  <app-empty-state [mensaje]="mensajeVacio()" [icono]="iconoVacio()" />
+}
+
+<div class="table-responsive" [class.d-none]="vacio()">
+  <table #tabla class="table align-middle w-100" [class.table-hover]="!compacta()"
+         [class.table-sm]="compacta()" [class.tabla-productos]="!compacta()"
+         [class.tabla-apilada]="!compacta()" [attr.aria-label]="etiqueta()"></table>
+</div>

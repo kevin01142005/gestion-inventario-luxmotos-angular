@@ -1,0 +1,7 @@
+@if (alerta(); as a) {
+  <div class="alert alert-{{ a.tipo }} alert-dismissible fade show" role="alert">
+    @if (icono()) { <i class="bi {{ icono() }}"></i> }
+    {{ a.mensaje }}
+    <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrar.emit()"></button>
+  </div>
+}

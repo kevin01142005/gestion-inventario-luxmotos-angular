@@ -1,0 +1,86 @@
+<app-modal [abierto]="abierto()" [grande]="true" (cerrar)="cerrar.emit()">
+  <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+    <div class="modal-header">
+      <h5 class="modal-title fw-bold">
+        <i class="bi" [class.bi-box-seam]="!esEdicion" [class.bi-pencil-square]="esEdicion"></i>
+        {{ esEdicion ? 'Editar producto' : 'Nuevo producto' }}
+      </h5>
+      <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrar.emit()"></button>
+    </div>
+    <div class="modal-body">
+      <app-alerta [alerta]="error()" (cerrar)="cerrarError.emit()" />
+
+      <div class="row g-3">
+        <div class="col-12 col-md-8">
+          <label for="nombreProducto" class="form-label">Nombre</label>
+          <input type="text" class="form-control" id="nombreProducto" formControlName="nombre" />
+          @if (intento() && form.controls.nombre.invalid) {
+            <div class="invalid-feedback d-block">El nombre es obligatorio.</div>
+          }
+        </div>
+        <div class="col-12 col-md-4">
+          <label for="codigoProducto" class="form-label">Código</label>
+          <input type="text" class="form-control" id="codigoProducto" formControlName="codigo" />
+          @if (intento() && form.controls.codigo.invalid) {
+            <div class="invalid-feedback d-block">El código es obligatorio.</div>
+          }
+        </div>
+
+        <div class="col-12">
+          <label for="descripcionProducto" class="form-label">Descripción</label>
+          <textarea class="form-control" id="descripcionProducto" rows="2" formControlName="descripcion"></textarea>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label for="categoriaProducto" class="form-label">Categoría</label>
+          <select class="form-select" id="categoriaProducto" formControlName="categoriaId">
+            <option [ngValue]="null" disabled>Selecciona una categoría</option>
+            @for (c of categorias(); track c.id) {
+              <option [ngValue]="c.id">{{ c.nombre }}</option>
+            }
+          </select>
+          @if (intento() && form.controls.categoriaId.invalid) {
+            <div class="invalid-feedback d-block">Selecciona una categoría.</div>
+          }
+        </div>
+        <div class="col-12 col-md-6">
+          <label for="proveedorProducto" class="form-label">Proveedor <span class="text-muted">(opcional)</span></label>
+          <select class="form-select" id="proveedorProducto" formControlName="proveedorId">
+            <option [ngValue]="null">Sin proveedor</option>
+            @for (p of proveedores(); track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label for="precioProducto" class="form-label">Precio</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control" id="precioProducto" formControlName="precio" min="0.01" step="0.01" />
+          </div>
+          @if (intento() && form.controls.precio.invalid) {
+            <div class="invalid-feedback d-block">El precio debe ser mayor a 0.</div>
+          }
+        </div>
+        <div class="col-12 col-md-4">
+          <label for="stockProducto" class="form-label">{{ esEdicion ? 'Stock actual' : 'Stock inicial' }}</label>
+          <input type="number" class="form-control" id="stockProducto" formControlName="stock" min="0" step="1" />
+          @if (esEdicion) {
+            <div class="form-text">El stock se administra desde movimientos de inventario, no desde este formulario.</div>
+          }
+        </div>
+        <div class="col-12 col-md-4">
+          <label for="stockMinimoProducto" class="form-label">Stock mínimo</label>
+          <input type="number" class="form-control" id="stockMinimoProducto" formControlName="stockMinimo" min="0" step="1" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-dark" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+        {{ guardando() ? 'Guardando...' : 'Guardar producto' }}
+      </button>
+    </div>
+  </form>
+</app-modal>

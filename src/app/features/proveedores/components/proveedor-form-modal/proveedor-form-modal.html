@@ -1,0 +1,45 @@
+<app-modal [abierto]="abierto()" (cerrar)="cerrar.emit()">
+  <form [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+    <div class="modal-header">
+      <h5 class="modal-title fw-bold">
+        <i class="bi" [class.bi-truck]="!esEdicion" [class.bi-pencil-square]="esEdicion"></i>
+        {{ esEdicion ? 'Editar proveedor' : 'Nuevo proveedor' }}
+      </h5>
+      <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrar.emit()"></button>
+    </div>
+    <div class="modal-body">
+      <app-alerta [alerta]="error()" (cerrar)="cerrarError.emit()" />
+
+      <div class="row g-3">
+        <div class="col-12">
+          <label for="nombreProveedor" class="form-label">Nombre</label>
+          <input type="text" class="form-control" id="nombreProveedor" formControlName="nombre" />
+          @if (intento() && form.controls.nombre.invalid) {
+            <div class="invalid-feedback d-block">El nombre es obligatorio.</div>
+          }
+        </div>
+        <div class="col-12">
+          <label for="contactoProveedor" class="form-label">Nombre de contacto</label>
+          <input type="text" class="form-control" id="contactoProveedor" formControlName="nombreContacto" />
+        </div>
+        <div class="col-12 col-md-6">
+          <label for="telefonoProveedor" class="form-label">Teléfono</label>
+          <input type="text" class="form-control" id="telefonoProveedor" formControlName="telefono" />
+        </div>
+        <div class="col-12 col-md-6">
+          <label for="correoProveedor" class="form-label">Correo</label>
+          <input type="email" class="form-control" id="correoProveedor" formControlName="correo" />
+          @if (intento() && form.controls.correo.invalid) {
+            <div class="invalid-feedback d-block">Ingresa un correo válido.</div>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-dark" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+        {{ guardando() ? 'Guardando...' : 'Guardar proveedor' }}
+      </button>
+    </div>
+  </form>
+</app-modal>

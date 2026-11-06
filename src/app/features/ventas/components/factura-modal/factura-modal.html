@@ -1,0 +1,31 @@
+<app-modal [abierto]="factura() !== null" (cerrar)="cerrar.emit()">
+  <div class="modal-header">
+    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-text"></i> Factura</h5>
+    <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrar.emit()"></button>
+  </div>
+  <div class="modal-body">
+    @if (factura(); as f) {
+      <div class="factura-encabezado d-flex justify-content-between align-items-start">
+        <div>
+          <p class="mb-1 text-muted small">Número de factura</p>
+          <p class="numero-factura mb-0">{{ f.numeroFactura }}</p>
+        </div>
+        <div class="text-end">
+          <p class="mb-1 text-muted small">Fecha de emisión</p>
+          <p class="mb-0">{{ f.creado | fechaHora }}</p>
+        </div>
+      </div>
+
+      <p class="mb-1"><strong>Cliente:</strong> {{ f.venta.nombreCliente }}</p>
+      <p class="mb-3 text-muted small"><strong>Vendedor:</strong> {{ f.venta.correoVendedor }}</p>
+
+      <app-data-table class="d-block mb-3" [datos]="f.venta.detalles" [columnas]="columnas" [compacta]="true"
+        etiqueta="Detalle de la factura" mensajeVacio="Esta factura no tiene productos." />
+
+      <app-resumen-totales [subtotal]="f.venta.subtotal" [iva]="f.venta.iva" [total]="f.venta.total" />
+    }
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-dark" (click)="cerrar.emit()">Cerrar</button>
+  </div>
+</app-modal>

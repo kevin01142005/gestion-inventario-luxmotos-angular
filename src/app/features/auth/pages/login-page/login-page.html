@@ -1,0 +1,60 @@
+<div class="pagina-auth">
+  <main class="contenedor-auth">
+    <div class="tarjeta-auth card shadow-lg border-0">
+      <div class="card-body p-4 p-md-5">
+
+        <app-header titulo="Gestión de Inventario" subtitulo="Ingresa con tu cuenta para continuar" />
+
+        <app-alerta [alerta]="alerta.actual()" (cerrar)="alerta.limpiar()" />
+
+        <form [formGroup]="form" (ngSubmit)="onLogin()" novalidate>
+          <div class="mb-3">
+            <label for="correo" class="form-label">Correo electrónico</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+              <input type="email" class="form-control" id="correo" formControlName="correo"
+                     placeholder="nombre@empresa.com" autocomplete="username" />
+            </div>
+            @if (intento() && form.controls.correo.invalid) {
+              <div class="invalid-feedback d-block">Ingresa un correo válido.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label for="contrasena" class="form-label">Contraseña</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock"></i></span>
+              <input [type]="verContrasena() ? 'text' : 'password'" class="form-control" id="contrasena"
+                     formControlName="contrasena" placeholder="Tu contraseña" autocomplete="current-password" />
+              <button class="btn btn-outline-secondary" type="button" tabindex="-1"
+                      [attr.aria-label]="verContrasena() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                      (click)="verContrasena.set(!verContrasena())">
+                <i class="bi" [class.bi-eye]="!verContrasena()" [class.bi-eye-slash]="verContrasena()"></i>
+              </button>
+            </div>
+            @if (intento() && form.controls.contrasena.invalid) {
+              <div class="invalid-feedback d-block">Ingresa tu contraseña.</div>
+            }
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-2" [disabled]="cargando()">
+            @if (cargando()) {
+              <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Ingresando...
+            } @else {
+              Iniciar sesión
+            }
+          </button>
+          @if (cargando()) {
+            <p class="text-center text-muted small mt-3 mb-0 aviso-espera">
+              Si el servidor estaba inactivo, la primera conexión puede tardar hasta un minuto.
+            </p>
+          }
+        </form>
+
+        <p class="text-center text-muted small mt-4 mb-0">
+          Sistema de uso interno · Los usuarios son creados por un administrador
+        </p>
+      </div>
+    </div>
+  </main>
+</div>
