@@ -11,7 +11,10 @@ import { htmlEstado } from '../../../../shared/components/status-badge/status-ba
 import { Tabs } from '../../../../shared/components/tabs/tabs';
 import { ColumnaTabla } from '../../../../shared/interfaces/columna-tabla.interface';
 import { Pestana } from '../../../../shared/interfaces/pestana.interface';
-import { ItemInventario, ProductoMasVendido, ResumenVentas } from '../../models/reporte.model';
+import { CategoriasService } from '../../../categorias/services/categorias';
+import {
+  FiltrosReporte, FormatoReporte, ItemInventario, ProductoMasVendido, ResumenVentas, TipoReporte,
+} from '../../models/reporte.model';
 import { ReportesService } from '../../services/reportes';
 
 const MESES = [
@@ -27,6 +30,7 @@ const MESES = [
 })
 export class ReportesPage implements OnInit {
   private readonly reportes = inject(ReportesService);
+  private readonly categorias = inject(CategoriasService);
 
   readonly alerta = new ControladorAlerta();
   readonly estadisticas = this.reportes.estadisticas;
@@ -38,6 +42,7 @@ export class ReportesPage implements OnInit {
     { id: 'mensuales', etiqueta: 'Ventas mensuales', icono: 'bi-calendar-month' },
     { id: 'mas-vendidos', etiqueta: 'Más vendidos', icono: 'bi-trophy' },
     { id: 'inventario', etiqueta: 'Inventario', icono: 'bi-box-seam' },
+    { id: 'exportar', etiqueta: 'Exportar y enviar', icono: 'bi-download' },
   ];
   readonly pestanaActiva = signal('diarias');
 
@@ -80,12 +85,36 @@ export class ReportesPage implements OnInit {
   readonly masVendidos = signal<ProductoMasVendido[]>([]);
   readonly inventario = signal<ItemInventario[]>([]);
 
+  // ---- Exportar y enviar por correo
+  readonly tiposReporte: { valor: TipoReporte; etiqueta: string }[] = [
+    { valor: 'ventas', etiqueta: 'Ventas' },
+    { valor: 'inventario', etiqueta: 'Inventario' },
+    { valor: 'productos-mas-vendidos', etiqueta: 'Productos más vendidos' },
+  ];
+  readonly estadosVenta = [
+    { valor: 'PENDIENTE', etiqueta: 'Pendiente' },
+    { valor: 'COMPLETADA', etiqueta: 'Completada' },
+    { valor: 'ANULADA', etiqueta: 'Anulada' },
+  ];
+  readonly categoriasActivas = this.categorias.activas;
+
+  readonly tipoExportar = signal<TipoReporte>('ventas');
+  readonly accionEnCurso = signal<'xlsx' | 'pdf' | 'correo' | null>(null);
+
+  readonly expDesde = new FormControl('', { nonNullable: true });
+  readonly expHasta = new FormControl('', { nonNullable: true });
+  readonly expEstado = new FormControl('', { nonNullable: true });
+  readonly expSoloStockBajo = new FormControl(false, { nonNullable: true });
+  readonly expCategoria = new FormControl<number | null>(null);
+  readonly formatoCorreo = new FormControl<FormatoReporte>('pdf', { nonNullable: true });
+
   ngOnInit(): void {
     this.reportes.cargarEstadisticas().catch(() => undefined);
     void this.consultarDiarias();
     void this.consultarMensuales();
     void this.consultarMasVendidos();
     void this.consultarInventario();
+    this.categorias.cargar().catch(() => undefined);
   }
 
   async consultarDiarias(): Promise<void> {
@@ -123,5 +152,58 @@ export class ReportesPage implements OnInit {
     } catch (error) {
       this.alerta.error(mensajeDeApi(error, 'No se pudo consultar el inventario'));
     }
+  }
+
+  cambiarTipoExportar(valor: string): void {
+    this.tipoExportar.set(valor as TipoReporte);
+  }
+
+  async descargar(formato: FormatoReporte): Promise<void> {
+    const filtros = this.filtrosExportar();
+    if (!filtros) return;
+
+    this.accionEnCurso.set(formato);
+    try {
+      await this.reportes.descargar(this.tipoExportar(), formato, filtros);
+      this.alerta.exito(`El reporte se descargó en formato ${formato === 'xlsx' ? 'Excel' : 'PDF'}.`);
+    } catch (error) {
+      this.alerta.error(mensajeDeApi(error, 'No se pudo generar el reporte'));
+    } finally {
+      this.accionEnCurso.set(null);
+    }
+  }
+
+  async enviarPorCorreo(): Promise<void> {
+    const filtros = this.filtrosExportar();
+    if (!filtros) return;
+
+    this.accionEnCurso.set('correo');
+    try {
+      const envio = await this.reportes.enviarPorCorreo(this.tipoExportar(), this.formatoCorreo.value, filtros);
+      this.alerta.exito(`${envio.mensaje}. Si no lo ves en tu bandeja de entrada, revisa la carpeta de spam.`);
+    } catch (error) {
+      this.alerta.error(mensajeDeApi(error, 'No se pudo enviar el reporte por correo'));
+    } finally {
+      this.accionEnCurso.set(null);
+    }
+  }
+
+  private filtrosExportar(): FiltrosReporte | null {
+    const tipo = this.tipoExportar();
+    const desde = this.expDesde.value;
+    const hasta = this.expHasta.value;
+
+    if (tipo !== 'inventario' && desde && hasta && desde > hasta) {
+      this.alerta.aviso('La fecha "desde" no puede ser posterior a la fecha "hasta".');
+      return null;
+    }
+
+    return {
+      desde: tipo !== 'inventario' && desde ? desde : undefined,
+      hasta: tipo !== 'inventario' && hasta ? hasta : undefined,
+      estadoVenta: tipo === 'ventas' && this.expEstado.value ? this.expEstado.value : undefined,
+      soloStockBajo: tipo === 'inventario' && this.expSoloStockBajo.value,
+      categoriaId: tipo === 'inventario' ? this.expCategoria.value : null,
+    };
   }
 }

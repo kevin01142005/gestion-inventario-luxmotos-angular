@@ -25,3 +25,21 @@ export interface EstadisticasGenerales {
   cantidadProductosAgotados: number;
   cantidadClientesRegistrados: number;
 }
+
+export type TipoReporte = 'ventas' | 'inventario' | 'productos-mas-vendidos';
+export type FormatoReporte = 'xlsx' | 'pdf';
+
+export interface FiltrosReporte {
+  desde?: string;
+  hasta?: string;
+  estadoVenta?: string;
+  soloStockBajo?: boolean;
+  categoriaId?: number | null;
+}
+
+export interface EnvioReporte {
+  mensaje: string;
+  destinatario: string;
+  notificacionId: number;
+  estadoEnvio: string;
+}

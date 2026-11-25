@@ -2,7 +2,11 @@ import { Component, ElementRef, effect, inject, signal, viewChild } from '@angul
 import { ChatBurbuja } from '../../../../shared/components/chat-burbuja/chat-burbuja';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { SectionHeader } from '../../../../shared/components/section-header/section-header';
+import { ConfigAsistente, MotorIa, ResultadoPrueba } from '../../models/asistente.model';
+import { AsistenteConfigService } from '../../services/asistente-config';
+import { AsistenteIaService } from '../../services/asistente-ia';
 import { AsistenteService } from '../../services/asistente';
+import { normalizarUrlOllama } from '../../utils/motor-ia';
 
 @Component({
   selector: 'app-asistente-page',
@@ -12,20 +16,26 @@ import { AsistenteService } from '../../services/asistente';
 })
 export class AsistentePage {
   private readonly asistente = inject(AsistenteService);
+  private readonly ajustes = inject(AsistenteConfigService);
+  private readonly ia = inject(AsistenteIaService);
 
   readonly mensajes = this.asistente.mensajes;
   readonly pensando = this.asistente.pensando;
-  readonly conectado = this.asistente.conectado;
   readonly texto = signal('');
-  readonly clave = signal('');
-  readonly verClave = signal(false);
   readonly lista = viewChild<ElementRef<HTMLElement>>('lista');
 
+  // Panel "Configurar IA": se edita una copia (borrador) y solo se aplica al pulsar "Guardar".
+  readonly motorActual = this.ajustes.motorActual;
+  readonly panelAbierto = signal(false);
+  readonly borrador = signal<ConfigAsistente>({ ...this.ajustes.config() });
+  readonly probando = signal(false);
+  readonly resultado = signal<ResultadoPrueba | null>(null);
+
   readonly sugerencias = [
-    '¿Cuánto es el IVA y cómo se calcula el total de una venta?',
-    '¿Qué puede hacer un empleado y qué no puede hacer?',
+    '¿Qué productos tienen el stock bajo o agotado?',
+    '¿Cuánto hemos vendido hoy y este mes?',
+    '¿Cuáles son los productos más vendidos?',
     '¿Cuándo se descuenta el stock de una venta?',
-    '¿Qué modelos de Yamaha hay en el catálogo?',
   ];
 
   constructor() {
@@ -39,22 +49,6 @@ export class AsistentePage {
 
   actualizar(evento: Event): void {
     this.texto.set((evento.target as HTMLTextAreaElement).value);
-  }
-
-  actualizarClave(evento: Event): void {
-    this.clave.set((evento.target as HTMLInputElement).value);
-  }
-
-  guardarClave(evento?: Event): void {
-    evento?.preventDefault();
-    if (!this.clave().trim()) return;
-    this.asistente.guardarClave(this.clave());
-    this.clave.set('');
-    this.verClave.set(false);
-  }
-
-  cambiarClave(): void {
-    this.asistente.olvidarClave();
   }
 
   enviar(evento?: Event): void {
@@ -77,5 +71,66 @@ export class AsistentePage {
 
   nuevaConversacion(): void {
     this.asistente.limpiar();
+  }
+
+  // ---------------------------------------------------------------- Configurar IA
+  alternarPanel(): void {
+    const abrir = !this.panelAbierto();
+    if (abrir) {
+      this.borrador.set({ ...this.ajustes.config() }); // al abrir se parte de lo guardado
+      this.resultado.set(null);
+    }
+    this.panelAbierto.set(abrir);
+  }
+
+  cambiarUsarIa(evento: Event): void {
+    this.cambiar({ usarIa: (evento.target as HTMLInputElement).checked });
+  }
+
+  cambiarMotor(motor: MotorIa): void {
+    this.cambiar({ motor });
+  }
+
+  cambiarUrl(evento: Event): void {
+    this.cambiar({ ollamaUrl: (evento.target as HTMLInputElement).value });
+  }
+
+  cambiarModelo(evento: Event): void {
+    this.cambiar({ ollamaModelo: (evento.target as HTMLInputElement).value });
+  }
+
+  guardar(): void {
+    const actual = this.borrador();
+    const url = normalizarUrlOllama(actual.ollamaUrl);
+    const modelo = actual.ollamaModelo.trim();
+    if (actual.motor === 'ollama' && actual.usarIa) {
+      if (!url) return this.resultado.set({ ok: false, mensaje: 'La dirección de Ollama no es válida. Ejemplo: http://localhost:11434' });
+      if (!modelo) return this.resultado.set({ ok: false, mensaje: 'Escribe el nombre del modelo de Ollama.' });
+    }
+    const limpio: ConfigAsistente = {
+      ...actual,
+      ollamaUrl: url ?? this.ajustes.config().ollamaUrl,
+      ollamaModelo: modelo || this.ajustes.config().ollamaModelo,
+    };
+    this.ajustes.guardar(limpio);
+    this.borrador.set({ ...limpio });
+    this.resultado.set({ ok: true, mensaje: 'Configuración guardada. Se aplica desde la próxima pregunta.' });
+  }
+
+  async probar(): Promise<void> {
+    if (this.probando()) return;
+    const actual = this.borrador();
+    this.probando.set(true);
+    this.resultado.set(null);
+    try {
+      this.resultado.set(await this.ia.probar(actual.motor, actual.ollamaUrl, actual.ollamaModelo));
+    } finally {
+      this.probando.set(false);
+    }
+  }
+
+  private cambiar(cambio: Partial<ConfigAsistente>): void {
+    this.borrador.update(b => ({ ...b, ...cambio }));
+    this.resultado.set(null);
   }
 }

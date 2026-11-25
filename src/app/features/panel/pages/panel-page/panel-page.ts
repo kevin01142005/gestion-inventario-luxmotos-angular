@@ -8,11 +8,9 @@ import { botonFila, esc, textoOGuion } from '../../../../core/utils/tabla';
 import { Alerta } from '../../../../shared/components/alerta/alerta';
 import { ConfirmModal } from '../../../../shared/components/confirm-modal/confirm-modal';
 import { DataTable } from '../../../../shared/components/data-table/data-table';
-import { ResumenCard } from '../../../../shared/components/resumen-card/resumen-card';
 import { SearchBox } from '../../../../shared/components/search-box/search-box';
 import { SectionHeader } from '../../../../shared/components/section-header/section-header';
 import { htmlEstado } from '../../../../shared/components/status-badge/status-badge';
-import { SoloAdminDirective } from '../../../../shared/directives/solo-admin.directive';
 import { AccionTabla, ColumnaTabla } from '../../../../shared/interfaces/columna-tabla.interface';
 import { CategoriasService } from '../../../categorias/services/categorias';
 import { ProveedoresService } from '../../../proveedores/services/proveedores';
@@ -27,8 +25,8 @@ import { ProductosService } from '../../services/productos';
 @Component({
   selector: 'app-panel-page',
   imports: [
-    Alerta, ResumenCard, SectionHeader, SearchBox, DataTable, ConfirmModal,
-    ProductoFormModal, CompatibilidadModal, SoloAdminDirective,
+    Alerta, SectionHeader, SearchBox, DataTable, ConfirmModal,
+    ProductoFormModal, CompatibilidadModal,
   ],
   templateUrl: './panel-page.html',
   styleUrl: './panel-page.css',

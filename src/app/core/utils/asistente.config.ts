@@ -9,7 +9,7 @@ export interface ConfigAsistente {
 }
 
 export const CONFIG_ASISTENTE_POR_DEFECTO: ConfigAsistente = {
-  urlBase: 'http://localhost:8080',
+  urlBase: 'http://localhost:3000',
   modelo: 'qwen2.5:3b-instruct',
   conocimientoId: 'fce0df70-438e-45d2-a86e-f2d20b7454c6',
   claveAlmacenada: 'luxmotos_asistente_clave',

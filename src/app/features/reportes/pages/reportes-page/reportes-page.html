@@ -106,6 +106,96 @@
                   placeholderBusqueda="Buscar producto o código..." mensajeVacio="No hay productos registrados." />
               </div>
             }
+
+            @case ('exportar') {
+              <div class="tab-pane fade show active">
+                <p class="text-muted small mb-3">
+                  Genera un reporte consolidado y descárgalo en Excel o PDF, o recíbelo como adjunto en tu correo registrado.
+                </p>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-12 col-md-4">
+                    <label for="tipoReporteExportar" class="form-label">Reporte</label>
+                    <select class="form-select" id="tipoReporteExportar" [value]="tipoExportar()"
+                            (change)="cambiarTipoExportar($any($event.target).value)">
+                      @for (t of tiposReporte; track t.valor) {
+                        <option [value]="t.valor">{{ t.etiqueta }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  @if (tipoExportar() !== 'inventario') {
+                    <div class="col-6 col-md-2">
+                      <label for="expDesde" class="form-label">Desde</label>
+                      <input type="date" class="form-control" id="expDesde" [formControl]="expDesde" />
+                    </div>
+                    <div class="col-6 col-md-2">
+                      <label for="expHasta" class="form-label">Hasta</label>
+                      <input type="date" class="form-control" id="expHasta" [formControl]="expHasta" />
+                    </div>
+                  }
+
+                  @if (tipoExportar() === 'ventas') {
+                    <div class="col-12 col-md-4">
+                      <label for="expEstado" class="form-label">Estado de la venta</label>
+                      <select class="form-select" id="expEstado" [formControl]="expEstado">
+                        <option value="">Todos</option>
+                        @for (e of estadosVenta; track e.valor) {
+                          <option [value]="e.valor">{{ e.etiqueta }}</option>
+                        }
+                      </select>
+                    </div>
+                  }
+
+                  @if (tipoExportar() === 'inventario') {
+                    <div class="col-12 col-md-4">
+                      <label for="expCategoria" class="form-label">Categoría</label>
+                      <select class="form-select" id="expCategoria" [formControl]="expCategoria">
+                        <option [ngValue]="null">Todas</option>
+                        @for (c of categoriasActivas(); track c.id) {
+                          <option [ngValue]="c.id">{{ c.nombre }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-4 d-flex align-items-end">
+                      <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="expSoloStockBajo" [formControl]="expSoloStockBajo" />
+                        <label class="form-check-label" for="expSoloStockBajo">Solo productos con stock bajo</label>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                @if (tipoExportar() === 'productos-mas-vendidos') {
+                  <p class="text-muted small">Si no eliges fechas, se usan los últimos 30 días.</p>
+                }
+
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                  <button type="button" class="btn btn-outline-success" [disabled]="accionEnCurso() !== null"
+                          (click)="descargar('xlsx')">
+                    <i class="bi bi-file-earmark-excel"></i>
+                    {{ accionEnCurso() === 'xlsx' ? 'Generando...' : 'Descargar Excel' }}
+                  </button>
+                  <button type="button" class="btn btn-outline-danger" [disabled]="accionEnCurso() !== null"
+                          (click)="descargar('pdf')">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    {{ accionEnCurso() === 'pdf' ? 'Generando...' : 'Descargar PDF' }}
+                  </button>
+
+                  <div class="input-group ms-md-3" style="max-width: 360px">
+                    <select class="form-select" aria-label="Formato del adjunto" [formControl]="formatoCorreo">
+                      <option value="pdf">PDF</option>
+                      <option value="xlsx">Excel</option>
+                    </select>
+                    <button type="button" class="btn btn-primary" [disabled]="accionEnCurso() !== null"
+                            (click)="enviarPorCorreo()">
+                      <i class="bi bi-envelope-arrow-up"></i>
+                      {{ accionEnCurso() === 'correo' ? 'Enviando...' : 'Enviar a mi correo' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
           }
 
         </div>

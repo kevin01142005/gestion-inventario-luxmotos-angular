@@ -1,0 +1,65 @@
+<main class="contenedor-panel">
+  <div class="container-fluid px-3 px-lg-4">
+    <div class="card tarjeta-tabla mt-3 mb-5">
+      <div class="card-body">
+        <app-section-header titulo="Chat en tiempo real"
+          subtitulo="Conversa al instante con los demás usuarios conectados al sistema" />
+
+        @if (error()) {
+          <div class="alert alert-warning py-2" role="alert">{{ error() }}</div>
+        }
+
+        <div class="row g-3">
+          <div class="col-12 col-lg-3 order-2 order-lg-1">
+            <div class="panel-conectados">
+              <div class="fw-semibold mb-2">
+                <i class="bi bi-people"></i> Conectados ({{ conectados().length }})
+              </div>
+              @for (u of conectados(); track u.id) {
+                <div class="usuario-conectado" [class.es-yo]="u.id === miId()">
+                  <span class="avatar-chat">{{ iniciales(u.nombre) }}</span>
+                  <span class="nombre-chat">{{ u.nombre }}@if (u.id === miId()) { (tú)}</span>
+                  <span class="punto-en-linea"></span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-9 order-1 order-lg-2">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="estado-conexion" [class.en-linea]="conectado()"></span>
+              <span class="small text-muted">{{ conectado() ? 'Conectado' : 'Conectando…' }}</span>
+            </div>
+
+            <div class="chat-lista" #lista>
+              @if (!entradas().length) {
+                <app-empty-state mensaje="Aún no hay mensajes. ¡Escribe el primero!" icono="bi-chat-dots" />
+              }
+              @for (e of entradas(); track $index) {
+                @if (e.tipo === 'sistema') {
+                  <div class="aviso-chat">{{ e.texto }}</div>
+                } @else {
+                  <div class="fila-chat" [class.mia]="e.usuarioId === miId()">
+                    <div class="burbuja-chat">
+                      <div class="meta-chat">{{ e.usuarioId === miId() ? 'Tú' : e.autor }} · {{ e.hora | date: 'HH:mm' }}</div>
+                      <div class="texto-chat">{{ e.texto }}</div>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+
+            <form class="d-flex gap-2 mt-3" (submit)="enviar($event)">
+              <input type="text" class="form-control" placeholder="Escribe un mensaje…" maxlength="500"
+                     aria-label="Mensaje" autocomplete="off" [value]="texto()" (input)="actualizar($event)"
+                     [disabled]="!conectado()" />
+              <button type="submit" class="btn btn-primary" [disabled]="!conectado() || !texto().trim()">
+                <i class="bi bi-send"></i> Enviar
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

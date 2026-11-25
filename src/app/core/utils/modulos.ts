@@ -12,8 +12,10 @@ export const RUTAS_ANGULAR: Record<string, string> = {
   '/ventas': '/ventas',
   '/reportes': '/reportes',
   '/auditoria': '/auditoria',
+  '/notificaciones': '/notificaciones',
   '/usuarios': '/registro',
   '/asistente': '/asistente',
+  '/chat': '/chat',
 };
 
 export const ICONO_POR_DEFECTO = 'bi-grid';

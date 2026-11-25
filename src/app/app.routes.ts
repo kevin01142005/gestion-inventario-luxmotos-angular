@@ -22,7 +22,7 @@ export const routes: Routes = [
     canActivate: [moduloGuard],
     data: { modulo: '/panel' },
     title: 'Panel · Gestión de Inventario',
-    loadComponent: () => import('./features/panel/pages/panel-page/panel-page').then(m => m.PanelPage),
+    loadComponent: () => import('./features/panel/pages/grafica-page/grafica-page').then(m => m.GraficaPage),
   },
   {
     path: 'productos',
@@ -82,11 +82,26 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auditoria/pages/auditoria-page/auditoria-page').then(m => m.AuditoriaPage),
   },
   {
+    path: 'notificaciones',
+    canActivate: [moduloGuard],
+    data: { modulo: '/notificaciones' },
+    title: 'Notificaciones · Gestión de Inventario',
+    loadComponent: () => import('./features/notificaciones/pages/notificaciones-page/notificaciones-page').then(m => m.NotificacionesPage),
+  },
+  {
     path: 'asistente',
     canActivate: [moduloGuard],
     data: { modulo: '/asistente' },
     title: 'Asistente · Gestión de Inventario',
     loadComponent: () => import('./features/asistente/pages/asistente-page/asistente-page').then(m => m.AsistentePage),
+  },
+
+  {
+    path: 'chat',
+    canActivate: [moduloGuard],
+    data: { modulo: '/chat' },
+    title: 'Chat · Gestión de Inventario',
+    loadComponent: () => import('./features/chat/pages/chat-page/chat-page').then(m => m.ChatPage),
   },
 
   { path: '**', canActivate: [inicioGuard], children: [] },

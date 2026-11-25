@@ -5,28 +5,6 @@
       <app-alerta [alerta]="alerta.actual()" icono="bi-shield-exclamation" (cerrar)="alerta.limpiar()" />
     </div>
 
-    <div class="row g-3 mt-1">
-      <div class="col-6 col-lg-3">
-        <app-resumen-card etiqueta="Total productos" [valor]="totalProductos()" icono="bi-box-seam" color="rojo" />
-      </div>
-      <div class="col-6 col-lg-3">
-        <app-resumen-card etiqueta="Categorías activas" [valor]="categoriasActivas()" icono="bi-tags" color="negro" />
-      </div>
-      <div class="col-6 col-lg-3">
-        <app-resumen-card etiqueta="Stock bajo" [valor]="stockBajo()" icono="bi-exclamation-triangle" color="alerta" />
-      </div>
-      <div class="col-6 col-lg-3">
-        <app-resumen-card etiqueta="Agotados" [valor]="agotados()" icono="bi-x-octagon" color="rojo" />
-      </div>
-
-      <div class="col-6 col-lg-3" *appSoloAdmin>
-        <app-resumen-card etiqueta="Ventas del mes" [valor]="ventasMes()" icono="bi-graph-up-arrow" color="negro" />
-      </div>
-      <div class="col-6 col-lg-3" *appSoloAdmin>
-        <app-resumen-card etiqueta="Clientes registrados" [valor]="estadisticas().cantidadClientesRegistrados" icono="bi-people" color="rojo" />
-      </div>
-    </div>
-
     <div class="card tarjeta-tabla mt-4 mb-5">
       <div class="card-body">
 

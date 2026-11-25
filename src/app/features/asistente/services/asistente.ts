@@ -1,152 +1,195 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { ASISTENTE_CONFIG } from '../../../core/utils/asistente.config';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../../core/services/auth';
+import { ModeloMoto, VersionMoto } from '../../../core/models/catalogo-motos.model';
+import { mensajeDeApi } from '../../../core/utils/api-error';
+import { Pseudonimizador, codigoCliente } from '../../../core/utils/pseudonimizador';
 import { MensajeChat } from '../../../shared/interfaces/mensaje-chat.interface';
-import { ErrorAsistente, RespuestaAsistente, TurnoConversacion } from '../models/asistente.model';
+import { CuerpoChat, ErrorAsistente, RespuestaAsistente, TurnoConversacion } from '../models/asistente.model';
+import { respuestaFrecuente, responderBasico } from '../utils/asistente-basico';
+import { insigniaMotor } from '../utils/motor-ia';
+import {
+  CATALOGO_VACIO, CatalogoExtra, ContextoArmado, DatosExtra, clientesMencionados, construirContexto, detectarTemas, marcasMencionadas,
+  modelosMencionados, productosMencionados, registrarPersonas,
+} from '../utils/contexto-asistente';
+import { AsistenteConfigService } from './asistente-config';
+import { AsistenteDatosService } from './asistente-datos';
+import { AsistenteIaService } from './asistente-ia';
 
 const TURNOS_DE_CONTEXTO = 6;
 
-const INSTRUCCION =
-  'Eres el asistente de LuxMotos. Responde en español, de forma breve y clara. ' +
-  'Responde la pregunta usando la información de los documentos que recibes como contexto.';
-
-interface CuerpoRespuesta {
-  choices?: { message?: { content?: unknown } }[];
-  sources?: unknown;
+/** Todo lo de una conversación; se guarda por usuario para que al cambiar de sesión no se vea la charla del anterior. */
+interface Conversacion {
+  mensajes: MensajeChat[];
+  turnosIA: TurnoConversacion[]; // lo que la IA ve (con códigos en lugar de nombres)
+  pseudonimizador: Pseudonimizador;
 }
 
-function nombreDeFuente(fuente: unknown): string {
-  if (typeof fuente !== 'object' || fuente === null) return '';
-  const obj = fuente as { source?: { name?: unknown }; metadata?: { name?: unknown; source?: unknown }[] };
-  const candidatos = [obj.source?.name, obj.metadata?.[0]?.name, obj.metadata?.[0]?.source];
-  const nombre = candidatos.find(c => typeof c === 'string' && c.trim() !== '');
-  return typeof nombre === 'string' ? nombre.trim() : '';
+/** El chat muestra texto plano: se quitan los asteriscos, almohadillas y comillas invertidas del formato Markdown. */
+function quitarMarkdown(texto: string): string {
+  return texto
+    .replace(/\*\*(.+?)\*\*/gs, '$1')
+    .replace(/__(.+?)__/gs, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*\*\s+/gm, '- ');
 }
 
-export function extraerFuentes(fuentes: unknown): string[] {
-  if (!Array.isArray(fuentes)) return [];
-  return [...new Set(fuentes.map(nombreDeFuente).filter(n => n !== ''))];
+function conversacionNueva(): Conversacion {
+  return { mensajes: [], turnosIA: [], pseudonimizador: new Pseudonimizador() };
 }
 
-function mensajeDeEstado(estado: number): string {
-  if (estado === 401 || estado === 403) return 'La clave de Open WebUI no es válida. Cámbiala con el botón "Cambiar clave".';
-  if (estado === 404) return 'Open WebUI no encontró el modelo o la base de conocimiento.';
-  if (estado === 429) return 'Se alcanzó el límite de uso del modelo. Espera unos segundos e inténtalo de nuevo.';
-  return `Open WebUI respondió con el error ${estado}.`;
-}
-
-function leerClave(llave: string): string {
-  try {
-    return localStorage.getItem(llave) ?? '';
-  } catch {
-    return '';
-  }
-}
-
+/**
+ * Flujo: el usuario pregunta -> se piden los datos a la API (con sus permisos) -> se arma un resumen corto
+ * -> los nombres se cambian por códigos -> el motor elegido genera la respuesta (Groq a través del backend, u Ollama
+ * en el PC local) -> la respuesta vuelve y se ponen otra vez los nombres reales. La IA nunca toca la base de datos.
+ * Si la IA está apagada o falla, responde el asistente básico por reglas con esos mismos datos.
+ */
 @Injectable({ providedIn: 'root' })
 export class AsistenteService {
-  private readonly config = inject(ASISTENTE_CONFIG);
+  private readonly auth = inject(AuthService);
+  private readonly datos = inject(AsistenteDatosService);
+  private readonly ia = inject(AsistenteIaService);
+  private readonly ajustes = inject(AsistenteConfigService);
   private siguienteId = 1;
 
-  private readonly _mensajes = signal<MensajeChat[]>([]);
+  private readonly conversaciones = signal<Record<string, Conversacion>>({});
   private readonly _pensando = signal(false);
-  private readonly _clave = signal(leerClave(this.config.claveAlmacenada));
 
-  readonly mensajes = this._mensajes.asReadonly();
+  readonly mensajes = computed(() => this.conversaciones()[this.claveUsuario()]?.mensajes ?? []);
   readonly pensando = this._pensando.asReadonly();
-  readonly conectado = () => this._clave() !== '';
-
-  guardarClave(clave: string): void {
-    const limpia = clave.trim();
-    if (!limpia) return;
-    try {
-      localStorage.setItem(this.config.claveAlmacenada, limpia);
-    } catch {
-      return;
-    } finally {
-      this._clave.set(limpia);
-    }
-  }
-
-  olvidarClave(): void {
-    try {
-      localStorage.removeItem(this.config.claveAlmacenada);
-    } finally {
-      this._clave.set('');
-    }
-  }
 
   async enviar(texto: string): Promise<void> {
     const pregunta = texto.trim();
     if (!pregunta || this._pensando()) return;
 
-    const historial = this.historial();
-    this.agregar('usuario', pregunta);
+    const clave = this.claveUsuario();
+    this.agregar(clave, 'usuario', pregunta);
     this._pensando.set(true);
     try {
-      const resultado = await this.consultar(pregunta, historial);
-      this.agregar('asistente', resultado.respuesta, resultado.fuentes);
+      const resultado = await this.consultar(clave, pregunta);
+      this.agregar(clave, 'asistente', resultado.respuesta, resultado.fuentes);
     } catch (error) {
-      const mensaje = error instanceof ErrorAsistente ? error.message : 'Ocurrió un error inesperado al consultar al asistente.';
-      this.agregar('error', mensaje);
+      const mensaje = error instanceof ErrorAsistente ? error.message : mensajeDeApi(error, 'Ocurrió un error inesperado al consultar al asistente');
+      this.agregar(clave, 'error', mensaje);
     } finally {
       this._pensando.set(false);
     }
   }
 
   limpiar(): void {
-    this._mensajes.set([]);
+    const clave = this.claveUsuario();
+    this.actualizar(clave, c => ({ ...c, mensajes: [], turnosIA: [] }));
+    this.datos.invalidar();
   }
 
-  async consultar(pregunta: string, historial: TurnoConversacion[] = []): Promise<RespuestaAsistente> {
-    const clave = this._clave();
-    if (!clave) throw new ErrorAsistente('Falta la clave de Open WebUI. Pégala en el recuadro de conexión.');
+  private async consultar(clave: string, pregunta: string): Promise<RespuestaAsistente> {
+    const conversacion = this.conversaciones()[clave] ?? conversacionNueva();
+    const seudo = conversacion.pseudonimizador;
 
-    const { urlBase, modelo, conocimientoId, tiempoMaximoMs } = this.config;
-    const controlador = new AbortController();
-    const temporizador = setTimeout(() => controlador.abort(), tiempoMaximoMs);
+    // Con la IA apagada, las preguntas sobre cómo funciona el sistema se contestan al instante, sin pedir datos.
+    if (!this.ajustes.config().usarIa) {
+      const fija = respuestaFrecuente(pregunta);
+      if (fija) return { respuesta: fija, fuentes: ['Modo básico'] };
+    }
 
-    let respuesta: Response;
-    try {
-      respuesta = await fetch(`${urlBase.replace(/\/+$/, '')}/api/chat/completions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: modelo,
-          messages: [{ role: 'system', content: INSTRUCCION }, ...historial, { role: 'user', content: pregunta }],
-          files: [{ type: 'collection', id: conocimientoId }],
-          temperature: 0.1,
-          stream: false,
-        }),
-        signal: controlador.signal,
-      });
-    } catch {
-      if (controlador.signal.aborted) {
-        throw new ErrorAsistente('El asistente tardó demasiado en responder. Inténtalo de nuevo con una pregunta más corta.');
+    // 1) Datos desde la API, con el token y los permisos del usuario (un 403 llega como "sin datos").
+    const datos = await this.datos.cargar();
+    if (Object.values(datos).every(v => v === null)) {
+      throw new ErrorAsistente('No se pudieron cargar los datos del sistema. Si el servidor estaba dormido, espera un minuto e inténtalo de nuevo.');
+    }
+
+    // 2) Códigos para los nombres de clientes y los correos de vendedores.
+    registrarPersonas(datos, seudo);
+    const { alias } = clientesMencionados(pregunta, datos.clientes ?? []);
+    const codigosPorPalabra = new Map<string, Set<string>>();
+    for (const [id, palabras] of alias) {
+      for (const palabra of palabras) {
+        const codigos = codigosPorPalabra.get(palabra) ?? new Set<string>();
+        codigos.add(codigoCliente(id));
+        codigosPorPalabra.set(palabra, codigos);
       }
-      throw new ErrorAsistente(`No se pudo conectar con Open WebUI en ${urlBase}. Verifica que Open WebUI y Ollama estén encendidos.`);
-    } finally {
-      clearTimeout(temporizador);
+    }
+    for (const [palabra, codigos] of codigosPorPalabra) seudo.registrarAlias(palabra, [...codigos].join(' o '));
+
+    // 3) Datos que se piden solo si la pregunta los necesita (compatibilidad con motos, movimientos de un producto).
+    const activos = (datos.productos ?? []).filter(p => p.estado);
+    const mencionados = productosMencionados(pregunta, activos);
+    const temas = detectarTemas(pregunta);
+    const extra: DatosExtra = {
+      compatibilidad: temas.compatibilidad ? await this.datos.compatibilidadDe(mencionados.length ? mencionados : activos) : new Map(),
+      movimientos: temas.movimientos && mencionados.length ? await this.datos.movimientosDe(mencionados) : new Map(),
+      catalogo: temas.catalogo ? await this.cargarCatalogo(pregunta) : CATALOGO_VACIO,
+    };
+
+    // 4) Resumen corto, con los nombres ya cambiados por códigos.
+    const contexto = construirContexto(pregunta, datos, extra);
+    const ajustes = this.ajustes.config();
+
+    // 5a) IA apagada: responde el asistente básico, sin enviar nada a ningún modelo.
+    if (!ajustes.usarIa) {
+      return this.respuestaBasica(seudo, pregunta, contexto, '');
     }
 
-    if (!respuesta.ok) throw new ErrorAsistente(mensajeDeEstado(respuesta.status));
-
-    const datos = (await respuesta.json()) as CuerpoRespuesta;
-    const contenido = datos.choices?.[0]?.message?.content;
-    if (typeof contenido !== 'string' || contenido.trim() === '') {
-      throw new ErrorAsistente('El asistente no devolvió una respuesta.');
+    // 5b) El motor elegido genera la respuesta.
+    const preguntaIA = seudo.ocultar(pregunta);
+    const cuerpo: CuerpoChat = {
+      pregunta: preguntaIA,
+      contexto: seudo.ocultar(contexto.texto),
+      historial: conversacion.turnosIA.slice(-TURNOS_DE_CONTEXTO),
+    };
+    let bruta: string;
+    try {
+      bruta = ajustes.motor === 'ollama' ? await this.ia.ollama(ajustes, cuerpo) : await this.ia.groq(cuerpo);
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 401) throw error; // sesión vencida: lo maneja el interceptor
+      const motivo = error instanceof ErrorAsistente ? error.message : mensajeDeApi(error, 'La IA no respondió');
+      const motor = ajustes.motor === 'ollama' ? 'La IA local (Ollama)' : 'La IA en la nube (Groq)';
+      return this.respuestaBasica(seudo, pregunta, contexto, `${motor} no pudo responder: ${motivo}\n\nTe respondo con el asistente básico:\n\n`);
     }
-    return { respuesta: contenido.trim(), fuentes: extraerFuentes(datos.sources) };
+
+    this.actualizar(clave, c => ({
+      ...c,
+      turnosIA: [...c.turnosIA, { role: 'user' as const, content: preguntaIA }, { role: 'assistant' as const, content: bruta }].slice(-TURNOS_DE_CONTEXTO * 2),
+    }));
+
+    // 6) Se vuelven a poner los nombres reales.
+    return { respuesta: seudo.restaurar(quitarMarkdown(bruta)), fuentes: [...contexto.fuentes, insigniaMotor(ajustes)] };
   }
 
-  private historial(): TurnoConversacion[] {
-    return this._mensajes()
-      .filter(m => m.rol !== 'error')
-      .slice(-TURNOS_DE_CONTEXTO)
-      .map(m => ({ role: m.rol === 'usuario' ? 'user' : 'assistant', content: m.texto }));
+  /** Respuesta por reglas con los mismos datos; la conversación de la IA no la ve (no se guarda en turnosIA). */
+  private respuestaBasica(seudo: Pseudonimizador, pregunta: string, contexto: ContextoArmado, aviso: string): RespuestaAsistente {
+    const texto = responderBasico(pregunta, contexto);
+    return { respuesta: aviso + seudo.restaurar(texto), fuentes: [...contexto.fuentes, 'Modo básico'] };
   }
 
-  private agregar(rol: MensajeChat['rol'], texto: string, fuentes: string[] = []): void {
+  /** Marcas del catálogo y, solo de lo que la pregunta nombró, sus modelos y versiones (otra API, datos públicos). */
+  private async cargarCatalogo(pregunta: string): Promise<CatalogoExtra> {
+    const marcas = (await this.datos.marcas()) ?? [];
+    const modelos = new Map<number, ModeloMoto[]>();
+    for (const marca of marcasMencionadas(pregunta, marcas).slice(0, 3)) {
+      const lista = await this.datos.modelosDe(marca.id);
+      if (lista) modelos.set(marca.id, lista);
+    }
+    const versiones = new Map<number, VersionMoto[]>();
+    for (const modelo of modelosMencionados(pregunta, [...modelos.values()].flat()).slice(0, 3)) {
+      const lista = await this.datos.versionesDe(modelo.id);
+      if (lista) versiones.set(modelo.id, lista);
+    }
+    return { marcas, modelos, versiones };
+  }
+
+  private claveUsuario(): string {
+    return this.auth.usuario()?.correo ?? '';
+  }
+
+  private actualizar(clave: string, cambio: (c: Conversacion) => Conversacion): void {
+    this.conversaciones.update(todas => ({ ...todas, [clave]: cambio(todas[clave] ?? conversacionNueva()) }));
+  }
+
+  private agregar(clave: string, rol: MensajeChat['rol'], texto: string, fuentes: string[] = []): void {
     const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-    this._mensajes.update(lista => [...lista, { id: this.siguienteId++, rol, texto, fuentes, hora }]);
+    const mensaje: MensajeChat = { id: this.siguienteId++, rol, texto, fuentes, hora };
+    this.actualizar(clave, c => ({ ...c, mensajes: [...c.mensajes, mensaje] }));
   }
 }
