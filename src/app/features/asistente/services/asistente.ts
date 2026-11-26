@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../core/services/auth';
 import { ModeloMoto, VersionMoto } from '../../../core/models/catalogo-motos.model';
 import { mensajeDeApi } from '../../../core/utils/api-error';
@@ -17,8 +18,10 @@ import { AsistenteDatosService } from './asistente-datos';
 import { AsistenteIaService } from './asistente-ia';
 
 const TURNOS_DE_CONTEXTO = 6;
+const CLAVE_CONVERSACIONES = 'luxmotos.asistente.conversaciones';
+const MAX_MENSAJES_GUARDADOS = 100;
 
-/** Todo lo de una conversación; se guarda por usuario para que al cambiar de sesión no se vea la charla del anterior. */
+/** Todo lo de una conversación; se guarda por usuario (y en el navegador) hasta que se cierra la sesión. */
 interface Conversacion {
   mensajes: MensajeChat[];
   turnosIA: TurnoConversacion[]; // lo que la IA ve (con códigos en lugar de nombres)
@@ -39,6 +42,40 @@ function conversacionNueva(): Conversacion {
   return { mensajes: [], turnosIA: [], pseudonimizador: new Pseudonimizador() };
 }
 
+function mensajeValido(m: unknown): m is MensajeChat {
+  const x = m as Partial<MensajeChat> | null;
+  return (
+    !!x && typeof x.id === 'number' && typeof x.texto === 'string' && typeof x.hora === 'string' &&
+    (x.rol === 'usuario' || x.rol === 'asistente' || x.rol === 'error') && Array.isArray(x.fuentes)
+  );
+}
+
+function turnoValido(t: unknown): t is TurnoConversacion {
+  const x = t as Partial<TurnoConversacion> | null;
+  return !!x && (x.role === 'user' || x.role === 'assistant') && typeof x.content === 'string';
+}
+
+/** Las conversaciones se guardan en el navegador para que sobrevivan a una recarga o a que el navegador suspenda la pestaña. */
+function leerConversacionesGuardadas(): Record<string, Conversacion> {
+  try {
+    const crudo = localStorage.getItem(CLAVE_CONVERSACIONES);
+    if (!crudo) return {};
+    const guardado = JSON.parse(crudo) as Record<string, { mensajes?: unknown; turnosIA?: unknown } | null>;
+    const resultado: Record<string, Conversacion> = {};
+    for (const [clave, c] of Object.entries(guardado ?? {})) {
+      if (!clave || !c) continue;
+      resultado[clave] = {
+        mensajes: Array.isArray(c.mensajes) ? c.mensajes.filter(mensajeValido) : [],
+        turnosIA: Array.isArray(c.turnosIA) ? c.turnosIA.filter(turnoValido) : [],
+        pseudonimizador: new Pseudonimizador(),
+      };
+    }
+    return resultado;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Flujo: el usuario pregunta -> se piden los datos a la API (con sus permisos) -> se arma un resumen corto
  * -> los nombres se cambian por códigos -> el motor elegido genera la respuesta (Groq a través del backend, u Ollama
@@ -53,11 +90,22 @@ export class AsistenteService {
   private readonly ajustes = inject(AsistenteConfigService);
   private siguienteId = 1;
 
-  private readonly conversaciones = signal<Record<string, Conversacion>>({});
+  private readonly conversaciones = signal<Record<string, Conversacion>>(leerConversacionesGuardadas());
   private readonly _pensando = signal(false);
 
   readonly mensajes = computed(() => this.conversaciones()[this.claveUsuario()]?.mensajes ?? []);
   readonly pensando = this._pensando.asReadonly();
+
+  constructor() {
+    // Los ids de los mensajes guardados no deben repetirse con los nuevos.
+    const ids = Object.values(this.conversaciones()).flatMap(c => c.mensajes.map(m => m.id));
+    this.siguienteId = ids.length ? Math.max(...ids) + 1 : 1;
+
+    // La conversación solo se borra al cerrar sesión (o cuando la sesión expira).
+    toObservable(this.auth.usuario).subscribe(usuario => {
+      if (!usuario) this.borrarTodo();
+    });
+  }
 
   async enviar(texto: string): Promise<void> {
     const pregunta = texto.trim();
@@ -81,6 +129,29 @@ export class AsistenteService {
     const clave = this.claveUsuario();
     this.actualizar(clave, c => ({ ...c, mensajes: [], turnosIA: [] }));
     this.datos.invalidar();
+  }
+
+  private borrarTodo(): void {
+    this.conversaciones.set({});
+    this.datos.invalidar();
+    try {
+      localStorage.removeItem(CLAVE_CONVERSACIONES);
+    } catch {
+      // sin acceso al almacenamiento del navegador: no hay nada que borrar
+    }
+  }
+
+  private guardar(): void {
+    try {
+      const salida: Record<string, { mensajes: MensajeChat[]; turnosIA: TurnoConversacion[] }> = {};
+      for (const [clave, c] of Object.entries(this.conversaciones())) {
+        if (!clave) continue;
+        salida[clave] = { mensajes: c.mensajes.slice(-MAX_MENSAJES_GUARDADOS), turnosIA: c.turnosIA };
+      }
+      localStorage.setItem(CLAVE_CONVERSACIONES, JSON.stringify(salida));
+    } catch {
+      // almacenamiento lleno o bloqueado: la conversación sigue funcionando, solo que no se conserva al recargar
+    }
   }
 
   private async consultar(clave: string, pregunta: string): Promise<RespuestaAsistente> {
@@ -185,6 +256,7 @@ export class AsistenteService {
 
   private actualizar(clave: string, cambio: (c: Conversacion) => Conversacion): void {
     this.conversaciones.update(todas => ({ ...todas, [clave]: cambio(todas[clave] ?? conversacionNueva()) }));
+    this.guardar();
   }
 
   private agregar(clave: string, rol: MensajeChat['rol'], texto: string, fuentes: string[] = []): void {
