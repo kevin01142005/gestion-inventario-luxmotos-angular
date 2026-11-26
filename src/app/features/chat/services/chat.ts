@@ -3,7 +3,6 @@ import { AuthService } from '../../../core/services/auth';
 import { API_CONFIG } from '../../../core/utils/api.config';
 import { EntradaSala, UsuarioConectado } from '../models/sala.model';
 
-const URL_API_LOCAL = 'http://localhost:8080';
 const CODIGO_NO_AUTORIZADO = 4401;
 const CODIGO_SIN_PERMISO = 4403;
 const ESPERA_REINTENTO_MS = 3000;
@@ -58,8 +57,9 @@ export class ChatService {
       return;
     }
 
-    const urlApi = location.hostname === 'localhost' ? URL_API_LOCAL : this.config.urlBase;
-    const base = urlApi.replace(/^http/, 'ws');
+    // La dirección del chat sale de la misma configuración que las llamadas HTTP (api.config.ts):
+    // http://... pasa a ws://... y https://... pasa a wss://...
+    const base = this.config.urlBase.replace(/\/+$/, '').replace(/^http/, 'ws');
     const ws = new WebSocket(`${base}/ws/chat?token=${encodeURIComponent(token)}`);
     this.ws = ws;
 
