@@ -21,6 +21,7 @@ export interface ItemInventario {
 
 export interface EstadisticasGenerales {
   totalVentasDelMes: number;
+  totalVendido: number;
   cantidadProductosActivos: number;
   cantidadProductosAgotados: number;
   cantidadClientesRegistrados: number;

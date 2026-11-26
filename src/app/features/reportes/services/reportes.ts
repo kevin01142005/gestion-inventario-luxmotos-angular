@@ -12,6 +12,7 @@ const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', '
 
 const ESTADISTICAS_VACIAS: EstadisticasGenerales = {
   totalVentasDelMes: 0,
+  totalVendido: 0,
   cantidadProductosActivos: 0,
   cantidadProductosAgotados: 0,
   cantidadClientesRegistrados: 0,

@@ -23,24 +23,22 @@
         <app-resumen-card etiqueta="Ventas del mes" [valor]="ventasMes()" icono="bi-graph-up-arrow" color="negro" />
       </div>
       <div class="col-6 col-lg-3" *appSoloAdmin>
+        <app-resumen-card etiqueta="Total vendido" [valor]="totalVendido()" icono="bi-cash-stack" color="rojo" />
+      </div>
+      <div class="col-6 col-lg-3" *appSoloAdmin>
         <app-resumen-card etiqueta="Clientes registrados" [valor]="estadisticas().cantidadClientesRegistrados" icono="bi-people" color="rojo" />
       </div>
     </div>
 
     <div class="card tarjeta-tabla mt-4 mb-4">
       <div class="card-body">
-        <app-section-header titulo="Temperatura de la bodega" subtitulo="Lecturas del sensor de la bodega en tiempo real (ThingSpeak)">
-          <a class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener"
-             href="https://thingspeak.com/channels/3575976">
-            <i class="bi bi-box-arrow-up-right"></i> Abrir en ThingSpeak
+        <app-section-header titulo="Tablero de LuxMotos" subtitulo="Ventas, inventario y temperatura de la bodega (Power BI)">
+          <a class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener" [href]="urlTablero">
+            <i class="bi bi-box-arrow-up-right"></i> Abrir en Power BI
           </a>
         </app-section-header>
 
-        <iframe
-          title="Temperatura de la bodega"
-          src="https://thingspeak.com/channels/3575976/charts/1?width=auto&amp;height=auto&amp;bgcolor=%23ffffff&amp;color=%23dc2626&amp;dynamic=true&amp;days=1&amp;round=1&amp;type=line&amp;update=15"
-          style="width: 100%; height: calc(100vh - 230px); min-height: 560px; border: 0; border-radius: 8px;"
-          loading="lazy"></iframe>
+        <div #contenedorTablero class="tablero-marco"></div>
       </div>
     </div>
 
